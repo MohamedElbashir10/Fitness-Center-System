@@ -15,7 +15,7 @@ public class Availabiltiy;
   public void displayAvailability(){
     system.out.println.("Availability Details: ");
     system.out.println.("Date: " + date);
-    system.out.println.(" Start Time: " + startTime);
+    system.out.println.("Start Time: " + startTime);
     system.out.println.("End Time: " + endTime);
   }
 
