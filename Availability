@@ -1,0 +1,7 @@
+public class Availabiltiy;
+  private LocalDate date;
+  private LocalTime startTime;
+  private LocalTime endTime;
+
+  public Availablity(LocalDate date, LocalTime startTime, LocalTime endTime){
+      
