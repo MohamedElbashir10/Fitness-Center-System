@@ -1,4 +1,4 @@
-import javax.swing. JOptionPane;
+import javax.swing.JOptionPane;
 
 public class NotificationService {
   public static void sendEmailNotification(String to, String subject, String message)
