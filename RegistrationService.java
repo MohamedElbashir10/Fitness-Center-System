@@ -10,7 +10,6 @@ public class RegistrationService {
         this.registeredUsersByEmail = new HashMap<>();
     }
 
-    // Regular expression for basic email validation
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
 
     public User registerUser(String name, String email, String password, String role) {
