@@ -1,6 +1,9 @@
 public class Trainer extends User {
-    public Trainer(String name, String email, String password) {
-        super(name, email, password);
+
+    // Constructor
+    public Trainer(int id, String name, String username, String password) {
+        super(id, name, username, password, "Trainer");
     }
 
+    
 }
