@@ -1,6 +1,8 @@
 public class Member extends User {
-    public Member(String name, String email, String password) {
-        super(name, email, password);
+    
+    //Construtor
+    public Member(int id, String name, String username, String password) {
+        super(id, name, username, password, "Member");
     }
 
 }
