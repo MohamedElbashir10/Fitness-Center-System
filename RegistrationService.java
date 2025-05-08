@@ -60,7 +60,7 @@ public class RegistrationService {
     public void displayAllUsers() {
         System.out.println("\n=== Registered Users ===");
         for (User user : registeredUsersByEmail.values()) {
-            System.out.println("Role: " + user.getClass().getSimpleName() + " | Name: " + user.getName() + " | Email: " + user.email); // fix the getter for the email
+            System.out.println("Role: " + user.getClass().getSimpleName() + " | Name: " + user.getName() + " | Username: " + user.getUsername()); // fix the getter for the email
         }
     }
 }
