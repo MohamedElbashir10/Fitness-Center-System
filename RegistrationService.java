@@ -12,8 +12,8 @@ public class RegistrationService {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
 
-    public User registerUser(String name, String email, String password, String role) {
-        if (name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank()) {
+    public User registerUser(String id, String name, String email, String password, String role) {
+        if (id == null || name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank()) {
             System.out.println("[ERROR] Name, email, and password are required.");
             return null;
         }
@@ -31,13 +31,13 @@ public class RegistrationService {
         User newUser;
         switch (role.toLowerCase()) {
             case "member":
-                newUser = new Member(name, email, password);
+                newUser = new Member(id, name, email, password);
                 break;
             case "trainer":
-                newUser = new Trainer(name, email, password);
+                newUser = new Trainer(id ,name, email, password);
                 break;
             case "admin":
-                newUser = new Admin(name, email, password);
+                newUser = new Admin(id, name, email, password);
                 break;
             default:
                 System.out.println("[ERROR] Invalid role. Choose: member, trainer, or admin.");
@@ -60,7 +60,7 @@ public class RegistrationService {
     public void displayAllUsers() {
         System.out.println("\n=== Registered Users ===");
         for (User user : registeredUsersByEmail.values()) {
-            System.out.println("Role: " + user.getClass().getSimpleName() + " | Name: " + user.name + " | Email: " + user.email);
+            System.out.println("Role: " + user.getClass().getSimpleName() + " | Name: " + user.getName() + " | Username: " + user.getUsername()); // fix the getter for the email
         }
     }
 }
