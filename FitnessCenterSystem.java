@@ -12,7 +12,7 @@ public class FitnessCenterSystem {
         User loggedInUser = null;
         boolean running = true;
 
-        System.out.println("🏋️ Welcome to the Fitness Center System! 🏋️");
+        System.out.println("Welcome to the Fitness Center System! ");
 
         while (running) {
             System.out.println("\n---- Main Menu ----");
