@@ -7,7 +7,7 @@ public class Reservation {
     private WorkoutSession session;
     private LocalDateTime reservationTimestamp;
 
-    Reservation(String reservationID, Member member, WorkoutSession session) {
+    public Reservation(String reservationID, Member member, WorkoutSession session) {
         this.reservationID = reservationID;
         this.member = member;
         this.session = session;
