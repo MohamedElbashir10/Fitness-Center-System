@@ -8,7 +8,6 @@ public class FitnessCenterSystem {
         RegistrationService registrationService = new RegistrationService();
         AuthService authService = new AuthService();
         Schedule schedule = new Schedule();
-        Reservation reservation = new Reservation();
 
         User loggedInUser = null;
         boolean running = true;
@@ -70,7 +69,7 @@ public class FitnessCenterSystem {
                         String roleType = loggedInUser.getRole().toLowerCase();
                         switch (roleType) {
                             case "member":
-                                memberPanel(scanner, schedule, reservation, (Member) loggedInUser);
+                                memberPanel(scanner, schedule, (Member) loggedInUser);
                                 break;
                             case "trainer":
                                 trainerPanel((Trainer) loggedInUser);
@@ -93,8 +92,28 @@ public class FitnessCenterSystem {
                 case "4":
                     if (loggedInUser == null) {
                         LoggerUtils.logError("Please log in first.");
+                    } else if (loggedInUser instanceof Member) {
+                        schedule.displaySchedule();
+                        System.out.print("Enter Session ID to reserve: ");
+                        String sessionId = scanner.nextLine();
+                        WorkoutSession selectedSession = schedule.getScheduledSessions().stream()
+                                .filter(s -> s.getSessionID().equals(sessionId))
+                                .findFirst().orElse(null);
+
+                        if (selectedSession != null) {
+                            Reservation newReservation = Reservation.createReservation(
+                                    "R" + System.currentTimeMillis(),
+                                    (Member) loggedInUser,
+                                    selectedSession
+                            );
+                            if (newReservation != null) {
+                                LoggerUtils.logSuccess("Reservation successful!");
+                            }
+                        } else {
+                            LoggerUtils.logError("Session not found.");
+                        }
                     } else {
-                        reservation.makeReservation(loggedInUser);
+                        LoggerUtils.logError("Only members can make reservations.");
                     }
                     break;
 
@@ -171,7 +190,7 @@ public class FitnessCenterSystem {
         }
     }
 
-    private static void memberPanel(Scanner scanner, Schedule schedule, Reservation reservation, Member member) {
+    private static void memberPanel(Scanner scanner, Schedule schedule, Member member) {
         System.out.println("\n=== Member Menu ===");
         System.out.println("1 - View Workout Sessions");
         System.out.println("2 - Make Reservation");
