@@ -7,7 +7,6 @@ public class Reservation {
     private WorkoutSession session;
     private LocalDateTime reservationTimestamp;
 
-
     Reservation(String reservationID, Member member, WorkoutSession session) {
         this.reservationID = reservationID;
         this.member = member;
@@ -15,51 +14,48 @@ public class Reservation {
         this.reservationTimestamp = LocalDateTime.now();
     }
 
-
     public static Reservation createReservation(String reservationID, Member member, WorkoutSession session) {
         if (session.getParticipants().contains(member)) {
-            System.out.println("[ERROR] Member has already reserved this session.");
+            LoggerUtils.logError("Member has already reserved this session.");
             return null;
         }
 
         if (session.getCurrentOccupancy() >= session.getMaxCapacity()) {
-            System.out.println("[ERROR] Cannot reserve: session is full.");
+            LoggerUtils.logError("Cannot reserve: session is full.");
             return null;
         }
 
         boolean added = session.addParticipant(member);
         if (added) {
-            System.out.println("[SUCCESS] Reservation created for session: " + session.getSessionID());
+            LoggerUtils.logSuccess("Reservation created for session: " + session.getSessionID());
             return new Reservation(reservationID, member, session);
         } else {
-            System.out.println("[ERROR] Unknown error while adding participant.");
+            LoggerUtils.logError("Unknown error while adding participant.");
             return null;
         }
     }
-
 
     public boolean cancelReservation() {
         boolean removed = session.removeParticipant(member);
 
         if (removed) {
-            System.out.println("[SUCCESS] Reservation cancelled for member: " + member.getUsername()); // fix the getters
+            LoggerUtils.logSuccess("Reservation cancelled for member: " + member.getUsername());
             return true;
         } else {
-            System.out.println("[ERROR] Member was not enrolled in this session.");
+            LoggerUtils.logError("Member was not enrolled in this session.");
             return false;
         }
-
     }
 
     public void displayReservationDetails() {
-        System.out.println("=== Reservation Details ===");
-        System.out.println("Reservation ID: " + reservationID);
-        System.out.println("Member: " + member.getUsername()); // fix the getters
-        System.out.println("Session: " + session.getExerciseType() + " (" + session.getSessionID() + ")");
-        System.out.println("Scheduled Time: " + session.getDateTime());
-        System.out.println("Room: " + session.getRoom().getName());
-        System.out.println("Trainer: " + session.getTrainer().getUsername()); // fix the getters
-        System.out.println("Reservation Time: " + reservationTimestamp);
+        LoggerUtils.logSection("Reservation Details");
+        LoggerUtils.logInfo("Reservation ID: " + reservationID);
+        LoggerUtils.logInfo("Member: " + member.getUsername());
+        LoggerUtils.logInfo("Session: " + session.getExerciseType() + " (" + session.getSessionID() + ")");
+        LoggerUtils.logInfo("Scheduled Time: " + session.getDateTime());
+        LoggerUtils.logInfo("Room: " + session.getRoom().getName());
+        LoggerUtils.logInfo("Trainer: " + session.getTrainer().getUsername());
+        LoggerUtils.logInfo("Reservation Time: " + reservationTimestamp);
     }
 
     // Getters
