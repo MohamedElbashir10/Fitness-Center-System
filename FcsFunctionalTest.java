@@ -1,16 +1,8 @@
-package tests;
-
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
-import db.Admin;
-import db.Trainer;
-import db.Room;
-import db.WorkoutSession;
-import db.Schedule;
 
 public class FcsFunctionalTest {
 
@@ -21,10 +13,10 @@ public class FcsFunctionalTest {
 
         WorkoutSession pilates = new WorkoutSession("Pilates", "Core workout");
 
-        schedule.addWorkoutSession(pilates); // добавление
+        schedule.addWorkoutSession(pilates);
         assertTrue(schedule.getScheduledSessions().contains(pilates), "Pilates should be added");
 
-        schedule.removeWorkoutSession(pilates); // нужен метод в Schedule
+        schedule.removeWorkoutSession(pilates);
         assertFalse(schedule.getScheduledSessions().contains(pilates), "Pilates should be removed");
     }
 
@@ -75,4 +67,3 @@ public class FcsFunctionalTest {
         assertEquals("Yoga", assigned.get(0).getName());
     }
 }
-
