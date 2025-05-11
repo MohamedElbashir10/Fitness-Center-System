@@ -9,6 +9,7 @@ public class Schedule {
         this.scheduledSessions = new ArrayList<>();
     }
 
+
     public boolean scheduleWorkout(Admin admin, WorkoutSession session, Trainer trainer, Room room) {
         boolean isTrainerAvailable = trainer.getAvailabilitySlots().stream()
                 .anyMatch(slot -> slot.getDate().equals(session.getDateTime().toLocalDate())
