@@ -1,3 +1,5 @@
+package utils;
+
 public class InputValidator {
 
     public static boolean isValidUsername(String username) {

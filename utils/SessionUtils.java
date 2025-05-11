@@ -1,3 +1,5 @@
+package utils;
+
 import java.time.LocalTime;
 
 public class SessionUtils {
