@@ -24,6 +24,17 @@ CREATE TABLE session_types (
     description TEXT
 );
 
+-- availability table
+CREATE TABLE availability (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    trainer_id INTEGER,  -- Nullable if it's for a room
+    room_id INTEGER,     -- Nullable if it's for a trainer
+    FOREIGN KEY (trainer_id) REFERENCES trainer(id),
+    FOREIGN KEY (room_id) REFERENCES room(id)
+);
 
 CREATE TABLE sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
