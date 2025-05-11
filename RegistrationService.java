@@ -14,17 +14,17 @@ public class RegistrationService {
 
     public User registerUser(String id, String name, String email, String password, String role) {
         if (id == null || name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank()) {
-            System.out.println("[ERROR] Name, email, and password are required.");
+            LoggerUtils.logError("Name, email, and password are required.");
             return null;
         }
 
         if (!EMAIL_PATTERN.matcher(email).matches()) {
-            System.out.println("[ERROR] Invalid email format.");
+            LoggerUtils.logError("Invalid email format.");
             return null;
         }
 
         if (registeredUsersByEmail.containsKey(email)) {
-            System.out.println("[ERROR] Email is already registered.");
+            LoggerUtils.logError("Email is already registered.");
             return null;
         }
 
@@ -40,12 +40,12 @@ public class RegistrationService {
                 newUser = new Admin(id, name, email, password);
                 break;
             default:
-                System.out.println("[ERROR] Invalid role. Choose: member, trainer, or admin.");
+                LoggerUtils.logError("Invalid role. Choose: member, trainer, or admin.");
                 return null;
         }
 
         registeredUsersByEmail.put(email, newUser);
-        System.out.println("[SUCCESS] " + role + " registered: " + name);
+        LoggerUtils.logSuccess(role + " registered: " + name);
         return newUser;
     }
 
@@ -58,9 +58,9 @@ public class RegistrationService {
     }
 
     public void displayAllUsers() {
-        System.out.println("\n=== Registered Users ===");
+        LoggerUtils.logSection("Registered Users:");
         for (User user : registeredUsersByEmail.values()) {
-            System.out.println("Role: " + user.getClass().getSimpleName() + " | Name: " + user.getName() + " | Username: " + user.getUsername()); // fix the getter for the email
+            LoggerUtils.logInfo("Role: " + user.getClass().getSimpleName() + " | Name: " + user.getName() + " | Username: " + user.getUsername());
         }
     }
 }
