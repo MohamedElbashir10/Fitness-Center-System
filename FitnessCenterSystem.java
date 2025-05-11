@@ -1,242 +1,157 @@
-import java.util.Scanner;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
 
 public class FitnessCenterSystem {
+    private final AuthService authService;
+    private final RegistrationService registrationService;
+    private final Schedule schedule;
+    private User loggedInUser;
 
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+    public FitnessCenterSystem(AuthService authService, RegistrationService registrationService, Schedule schedule) {
+        this.authService = authService;
+        this.registrationService = registrationService;
+        this.schedule = schedule;
+        this.loggedInUser = null;
+        createMainMenu();
+    }
 
-        RegistrationService registrationService = new RegistrationService();
-        AuthService authService = new AuthService();
-        Schedule schedule = new Schedule();
+    private void createMainMenu() {
+        JFrame frame = new JFrame("Fitness Center System");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 300);
 
-        User loggedInUser = null;
-        boolean running = true;
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(5, 1));
 
-        System.out.println("Welcome to the Fitness Center System!");
+        JLabel welcomeLabel = new JLabel("Welcome to the Fitness Center System!", SwingConstants.CENTER);
+        panel.add(welcomeLabel);
 
-        while (running) {
-            System.out.println("\n---- Main Menu ----");
-            System.out.println("1 - Register");
-            System.out.println("2 - Login");
-            System.out.println("3 - View Schedule");
-            System.out.println("4 - Make Reservation");
-            System.out.println("0 - Exit");
-            System.out.print("Your choice: ");
-            String choice = scanner.nextLine();
+        JButton registerButton = new JButton("Register");
+        registerButton.addActionListener(e -> handleRegistration(frame));
+        panel.add(registerButton);
 
-            switch (choice) {
-                case "1":
-                    System.out.print("ID: ");
-                    String id = scanner.nextLine();
+        JButton loginButton = new JButton("Login");
+        loginButton.addActionListener(e -> handleLogin(frame));
+        panel.add(loginButton);
 
-                    System.out.print("Full Name: ");
-                    String name = scanner.nextLine();
+        JButton viewScheduleButton = new JButton("View Schedule");
+        viewScheduleButton.addActionListener(e -> schedule.displaySchedule());
 
-                    System.out.print("Email (Username): ");
-                    String email = scanner.nextLine();
+        panel.add(viewScheduleButton);
 
-                    System.out.print("Password: ");
-                    String password = scanner.nextLine();
+        JButton exitButton = new JButton("Exit");
+        exitButton.addActionListener(e -> System.exit(0));
+        panel.add(exitButton);
 
-                    System.out.print("Role (member/trainer/admin): ");
-                    String role = scanner.nextLine();
+        frame.add(panel);
+        frame.setVisible(true);
+    }
 
-                    User newUser = registrationService.registerUser(id, name, email, password, role);
+    private void handleRegistration(JFrame parentFrame) {
+        JDialog dialog = new JDialog(parentFrame, "Register", true);
+        dialog.setSize(400, 300);
+        dialog.setLayout(new GridLayout(6, 2));
 
-                    if (newUser != null) {
-                        authService.registerUser(newUser);
-                        NotificationService.sendSystemMessage(
-                                newUser.getUsername(),
-                                newUser.getId(),
-                                "Welcome to FCS",
-                                "Hello " + newUser.getName() + ", your registration is complete!");
-                    }
-                    break;
+        dialog.add(new JLabel("ID:"));
+        JTextField idField = new JTextField();
+        dialog.add(idField);
 
-                case "2":
-                    System.out.print("Username: ");
-                    String username = scanner.nextLine();
+        dialog.add(new JLabel("Full Name:"));
+        JTextField nameField = new JTextField();
+        dialog.add(nameField);
 
-                    System.out.print("Password: ");
-                    String loginPassword = scanner.nextLine();
+        dialog.add(new JLabel("Email (Username):"));
+        JTextField emailField = new JTextField();
+        dialog.add(emailField);
 
-                    loggedInUser = authService.authenticate(username, loginPassword);
+        dialog.add(new JLabel("Password:"));
+        JPasswordField passwordField = new JPasswordField();
+        dialog.add(passwordField);
 
-                    if (loggedInUser != null) {
-                        LoggerUtils.logSuccess("Logged in as: " + loggedInUser.getName() + " (" + loggedInUser.getRole() + ")");
-                        NotificationService.sendInAppNotification(loggedInUser.getId(),
-                                "You have successfully logged in. Welcome back!");
-                        String roleType = loggedInUser.getRole().toLowerCase();
-                        switch (roleType) {
-                            case "member":
-                                memberPanel(scanner, schedule, (Member) loggedInUser);
-                                break;
-                            case "trainer":
-                                trainerPanel((Trainer) loggedInUser);
-                                break;
-                            case "admin":
-                                adminPanel(scanner, schedule, (Admin) loggedInUser, registrationService);
-                                break;
-                            default:
-                                LoggerUtils.logError("Unknown role.");
-                        }
-                    } else {
-                        LoggerUtils.logError("Login failed.");
-                    }
-                    break;
+        dialog.add(new JLabel("Role (member/trainer/admin):"));
+        JTextField roleField = new JTextField();
+        dialog.add(roleField);
 
-                case "3":
-                    schedule.displaySchedule();
-                    break;
+        JButton registerButton = new JButton("Register");
+        registerButton.addActionListener(e -> {
+            int id = Integer.parseInt(idField.getText());
+            String name = nameField.getText();
+            String email = emailField.getText();
+            String password = new String(passwordField.getPassword());
+            String role = roleField.getText();
 
-                case "4":
-                    if (loggedInUser == null) {
-                        LoggerUtils.logError("Please log in first.");
-                    } else if (loggedInUser instanceof Member) {
-                        schedule.displaySchedule();
-                        System.out.print("Enter Session ID to reserve: ");
-                        String sessionId = scanner.nextLine();
-                        WorkoutSession selectedSession = schedule.getScheduledSessions().stream()
-                                .filter(s -> s.getSessionID().equals(sessionId))
-                                .findFirst().orElse(null);
-
-                        if (selectedSession != null) {
-                            Reservation newReservation = Reservation.createReservation(
-                                    "R" + System.currentTimeMillis(),
-                                    (Member) loggedInUser,
-                                    selectedSession
-                            );
-                            if (newReservation != null) {
-                                LoggerUtils.logSuccess("Reservation successful!");
-                            }
-                        } else {
-                            LoggerUtils.logError("Session not found.");
-                        }
-                    } else {
-                        LoggerUtils.logError("Only members can make reservations.");
-                    }
-                    break;
-
-                case "0":
-                    running = false;
-                    System.out.println("Goodbye!");
-                    break;
-
-                default:
-                    LoggerUtils.logError("Invalid choice.");
+            User newUser = registrationService.registerUser(id, name, email, password, role);
+            if (newUser != null) {
+                JOptionPane.showMessageDialog(dialog, "Registration successful!");
+                dialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Registration failed. Please try again.");
             }
-        }
+        });
+        dialog.add(registerButton);
 
-        scanner.close();
+        dialog.setVisible(true);
     }
 
-    private static void adminPanel(Scanner scanner, Schedule schedule, Admin admin, RegistrationService registrationService) {
-        System.out.println("\n=== Admin Panel ===");
-        System.out.println("1 - Schedule New Workout Session");
-        System.out.println("2 - View All Users");
-        System.out.println("0 - Back to Main Menu");
-        System.out.print("Your choice: ");
-        String choice = scanner.nextLine();
+    private void handleLogin(JFrame parentFrame) {
+        JDialog dialog = new JDialog(parentFrame, "Login", true);
+        dialog.setSize(300, 200);
+        dialog.setLayout(new GridLayout(3, 2));
 
-        switch (choice) {
-            case "1":
-                System.out.print("Enter session ID: ");
-                String sessionID = scanner.nextLine();
+        dialog.add(new JLabel("Username:"));
+        JTextField usernameField = new JTextField();
+        dialog.add(usernameField);
 
-                System.out.print("Enter exercise type: ");
-                String exerciseType = scanner.nextLine();
+        dialog.add(new JLabel("Password:"));
+        JPasswordField passwordField = new JPasswordField();
+        dialog.add(passwordField);
 
-                System.out.print("Enter date (YYYY-MM-DD): ");
-                String date = scanner.nextLine();
+        JButton loginButton = new JButton("Login");
+        loginButton.addActionListener(e -> {
+            String username = usernameField.getText();
+            String password = new String(passwordField.getPassword());
 
-                System.out.print("Enter time (HH:MM): ");
-                String time = scanner.nextLine();
+            User user = authService.authenticate(username, password);
+            if (user != null) {
+                loggedInUser = user;
+                JOptionPane.showMessageDialog(dialog, "Logged in as: " + user.getName() + " (" + user.getRole() + ")");
+                dialog.dispose();
+                handleUserActions();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Login failed. Invalid username or password.");
+            }
+        });
+        dialog.add(loginButton);
 
-                System.out.print("Enter max capacity: ");
-                int maxCapacity = Integer.parseInt(scanner.nextLine());
-
-                Trainer trainer = new Trainer("T001", "Trainer One", "trainer1", "pass123");
-                trainer.addAvailabilitySlot(new Availability(
-                        java.time.LocalDate.parse(date),
-                        java.time.LocalTime.of(8, 0),
-                        java.time.LocalTime.of(18, 0)));
-
-                Room room = new Room("Main Room", 201, 30, "Large workout hall");
-                java.time.LocalDateTime dateTime = java.time.LocalDateTime.parse(date + "T" + time);
-
-                WorkoutSession session = new WorkoutSession(sessionID, exerciseType, dateTime, maxCapacity, null, null);
-                boolean success = schedule.scheduleWorkout(admin, session, trainer, room);
-
-                if (success) {
-                    LoggerUtils.logSuccess("Session scheduled successfully.");
-                    NotificationService.sendSystemMessage(admin.getUsername(), admin.getId(),
-                            "Session Scheduled",
-                            "You have scheduled a new session: " + session.getExerciseType() + " on " + session.getDateTime());
-                } else {
-                    LoggerUtils.logError("Failed to schedule session.");
-                }
-                break;
-
-            case "2":
-                registrationService.displayAllUsers();
-                break;
-
-            case "0":
-                LoggerUtils.logInfo("Returning to main menu...");
-                break;
-
-            default:
-                LoggerUtils.logError("Invalid choice.");
-        }
+        dialog.setVisible(true);
     }
 
-    private static void memberPanel(Scanner scanner, Schedule schedule, Member member) {
-        System.out.println("\n=== Member Menu ===");
-        System.out.println("1 - View Workout Sessions");
-        System.out.println("2 - Make Reservation");
-        System.out.println("0 - Back to Main Menu");
-        System.out.print("Your choice: ");
-        String choice = scanner.nextLine();
+    private void handleUserActions() {
+        if (loggedInUser == null) return;
 
-        switch (choice) {
-            case "1":
-                schedule.displaySchedule();
-                break;
-            case "2":
-                schedule.displaySchedule();
-                System.out.print("Enter Session ID to reserve: ");
-                String sessionId = scanner.nextLine();
-                WorkoutSession selected = schedule.getScheduledSessions().stream()
-                        .filter(s -> s.getSessionID().equals(sessionId))
-                        .findFirst().orElse(null);
-
-                if (selected != null) {
-                    boolean added = selected.addParticipant(member);
-                    if (added) {
-                        LoggerUtils.logSuccess("Reservation successful!");
-                        String sessionInfo = selected.getExerciseType() + " on " + selected.getDateTime();
-                        NotificationService.sendBookingConfirmation(member.getUsername(), sessionInfo);
-                    } else {
-                        LoggerUtils.logError("Session is full.");
-                    }
-                } else {
-                    LoggerUtils.logError("Session not found.");
-                }
-                break;
-            case "0":
-                LoggerUtils.logInfo("Returning to main menu...");
-                break;
-            default:
-                LoggerUtils.logError("Invalid choice.");
+        String role = loggedInUser.getRole().toLowerCase();
+        switch (role) {
+            case "member" -> memberPanel((Member) loggedInUser);
+            case "trainer" -> trainerPanel((Trainer) loggedInUser);
+            case "admin" -> adminPanel((Admin) loggedInUser);
+            default -> JOptionPane.showMessageDialog(null, "Unknown role. Logging out.");
         }
+        loggedInUser = null; // Logout after actions
     }
 
-    private static void trainerPanel(Trainer trainer) {
-        System.out.println("\n=== Trainer Schedule ===");
-        for (WorkoutSession session : trainer.getAssignedSessions()) {
-            LoggerUtils.logInfo("Session: " + session.getExerciseType()
-                    + " | Date: " + session.getDateTime()
-                    + " | Room: " + session.getRoom().getName());
-        }
+    private void memberPanel(Member member) {
+        JOptionPane.showMessageDialog(null, "Member Panel: View Workout Sessions or Make Reservations.");
+        // Implement GUI for member actions
+    }
+
+    private void trainerPanel(Trainer trainer) {
+        JOptionPane.showMessageDialog(null, "Trainer Panel: View Assigned Sessions.");
+        // Implement GUI for trainer actions
+    }
+
+    private void adminPanel(Admin admin) {
+        JOptionPane.showMessageDialog(null, "Admin Panel: Schedule Sessions or View Users.");
+        // Implement GUI for admin actions
     }
 }

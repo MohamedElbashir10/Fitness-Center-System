@@ -7,7 +7,7 @@ public class Member extends User {
     private List<WorkoutSession> reservedSessions; 
 
     // Construtor
-    public Member(String id, String name, String username, String password) {
+    public Member(int id, String name, String username, String password) {
         super(id, name, username, password, "Member");
         this.reservedSessions = new ArrayList<>();
     }

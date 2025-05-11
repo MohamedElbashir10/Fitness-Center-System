@@ -4,17 +4,12 @@ import java.util.regex.Pattern;
 
 public class RegistrationService {
 
-    private Map<String, User> registeredUsersByEmail;
-
-    public RegistrationService() {
-        this.registeredUsersByEmail = new HashMap<>();
-    }
-
+    private final Map<String, User> registeredUsersByEmail = new HashMap<>();
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
 
-    public User registerUser(String id, String name, String email, String password, String role) {
-        if (id == null || name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank()) {
-            LoggerUtils.logError("Name, email, and password are required.");
+    public User registerUser(int id, String name, String email, String password, String role) {
+        if (isInvalidInput(id, name, email, password)) {
+            LoggerUtils.logError("ID, name, email, and password are required.");
             return null;
         }
 
@@ -28,25 +23,28 @@ public class RegistrationService {
             return null;
         }
 
-        User newUser;
-        switch (role.toLowerCase()) {
-            case "member":
-                newUser = new Member(id, name, email, password);
-                break;
-            case "trainer":
-                newUser = new Trainer(id ,name, email, password);
-                break;
-            case "admin":
-                newUser = new Admin(id, name, email, password);
-                break;
-            default:
-                LoggerUtils.logError("Invalid role. Choose: member, trainer, or admin.");
-                return null;
+        User newUser = createUserByRole(id, name, email, password, role);
+        if (newUser == null) {
+            LoggerUtils.logError("Invalid role. Choose: member, trainer, or admin.");
+            return null;
         }
 
         registeredUsersByEmail.put(email, newUser);
         LoggerUtils.logSuccess(role + " registered: " + name);
         return newUser;
+    }
+
+    private boolean isInvalidInput(int id, String name, String email, String password) {
+        return id <= 0 || name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank();
+    }
+
+    private User createUserByRole(int id, String name, String email, String password, String role) {
+        return switch (role.toLowerCase()) {
+            case "member" -> new Member(id, name, email, password);
+            case "trainer" -> new Trainer(id, name, email, password);
+            case "admin" -> new Admin(id, name, email, password);
+            default -> null;
+        };
     }
 
     public User findUserByEmail(String email) {
@@ -59,8 +57,8 @@ public class RegistrationService {
 
     public void displayAllUsers() {
         LoggerUtils.logSection("Registered Users:");
-        for (User user : registeredUsersByEmail.values()) {
-            LoggerUtils.logInfo("Role: " + user.getClass().getSimpleName() + " | Name: " + user.getName() + " | Username: " + user.getUsername());
-        }
+        registeredUsersByEmail.values().forEach(user ->
+                LoggerUtils.logInfo("Role: " + user.getClass().getSimpleName() + " | Name: " + user.getName() + " | Username: " + user.getUsername())
+        );
     }
 }

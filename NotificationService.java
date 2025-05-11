@@ -23,6 +23,10 @@ public class NotificationService {
         sendEmailNotification(email, subject, message);
     }
 
+    public static void showAlert(String title, String message) {
+        System.out.println(title + ": " + message);
+    }
+
 
     public static void sendCancellationNotification(String email, String sessionInfo) {
         String subject = "Session Cancelled";
@@ -31,12 +35,12 @@ public class NotificationService {
     }
 
 
-    public static void sendSystemMessage(String email, String userId, String subject, String message) {
+    public static void sendSystemMessage(String email, int userId, String subject, String message) {
         sendEmailNotification(email, subject, message);
         sendInAppNotification(userId, message);
     }
 
-    public static void sendInAppNotification(String userId, String message) {
+    public static void sendInAppNotification(int userId, String message) {
         // Console log (debug amaçlı)
         System.out.println("IN-APP NOTIFICATION");
         System.out.println("User ID : " + userId);
