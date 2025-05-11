@@ -17,7 +17,23 @@ public class Main {
         User member = new User("3", "Jane Smith", "member1", "member123", "Member");
         authService.registerUser(member);
 
+        LoginUI loginUI = new LoginUI(authService);
+        User loggedInUser = loginUI.displayLoginScreen();
+
+        if (loggedInUser != null) {
+            // route to proper dashboard based on role
+            switch (loggedInUser.getRole()) {
+                case "Admin":
+                    // showAdminDashboard();
+                    break;
+                case "Trainer":
+                    // showTrainerPanel();
+                    break;
+                case "Member":
+                    // showMemberHome();
+                    break;
+            }
+        }
+
     }
 }
-
-
