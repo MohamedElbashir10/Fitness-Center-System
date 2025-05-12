@@ -27,7 +27,7 @@ public class DatabaseHandler {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return new User(
-                            rs.getInt("id"),
+                            //rs.getInt("id"),
                             rs.getString("name"),
                             rs.getString("username"),
                             null, // Password is not retrieved for security reasons

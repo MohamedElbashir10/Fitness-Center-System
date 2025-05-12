@@ -81,7 +81,7 @@ public class FitnessCenterSystem {
             String password = new String(passwordField.getPassword());
             String role = roleField.getText();
 
-            User newUser = registrationService.registerUser(id, name, email, password, role);
+            User newUser = registrationService.registerUser(name, email, password, role);
             if (newUser != null) {
                 JOptionPane.showMessageDialog(dialog, "Registration successful!");
                 dialog.dispose();

@@ -2,12 +2,12 @@
 public class Admin extends User {
 
     // Constructor
-    public Admin(int id, String name, String username, String password) {
-        super(id, name, username, password, "Admin");
+    public Admin(String name, String username, String password) {
+        super(name, username, password, "Admin");
     }
 
-    public Trainer createTrainerAccount(int id, String name, String username, String password) {
-        return new Trainer(id, name, username, password);
+    public Trainer createTrainerAccount(String name, String username, String password) {
+        return new Trainer(name, username, password);
     }
 
     public boolean scheduleWorkout(WorkoutSession session, Trainer trainer, Room room) {

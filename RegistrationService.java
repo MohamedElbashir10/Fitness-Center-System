@@ -12,8 +12,8 @@ public class RegistrationService {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
 
-    public User registerUser(int id, String name, String email, String password, String role) {
-        if (id == null || name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank()) {
+    public User registerUser(String name, String email, String password, String role) {
+        if (name == null || name.isBlank() || email == null || email.isBlank() || password == null || password.isBlank()) {
             LoggerUtils.logError("Name, email, and password are required.");
             return null;
         }
@@ -31,13 +31,13 @@ public class RegistrationService {
         User newUser;
         switch (role.toLowerCase()) {
             case "member":
-                newUser = new Member(id, name, email, password);
+                newUser = new Member(name, email, password);
                 break;
             case "trainer":
-                newUser = new Trainer(id ,name, email, password);
+                newUser = new Trainer(name, email, password);
                 break;
             case "admin":
-                newUser = new Admin(id, name, email, password);
+                newUser = new Admin(name, email, password);
                 break;
             default:
                 LoggerUtils.logError("Invalid role. Choose: member, trainer, or admin.");

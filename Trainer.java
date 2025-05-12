@@ -9,8 +9,8 @@ public class Trainer extends User {
     private List<Availability> availabilitySlots; // Declare availabilitySlots
 
     // Constructor
-    public Trainer(int id, String name, String username, String password) {
-        super(id, name, username, password, "Trainer");
+    public Trainer( String name, String username, String password) {
+        super(name, username, password, "Trainer");
         this.assignedSessions = new ArrayList<>();
         this.availabilities = new ArrayList<>();
         this.availabilitySlots = new ArrayList<>(); // Initialize availabilitySlots

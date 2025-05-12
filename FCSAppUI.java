@@ -88,11 +88,7 @@ public class FCSAppUI extends JFrame {
     private void displayRegistrationDialog() {
         JDialog dialog = new JDialog(this, "Register", true);
         dialog.setSize(400, 250);
-        dialog.setLayout(new GridLayout(5, 2));
-
-        dialog.add(new JLabel("ID:"));
-        JTextField idField = new JTextField();
-        dialog.add(idField);
+        dialog.setLayout(new GridLayout(4, 2));
 
         dialog.add(new JLabel("Full Name:"));
         JTextField nameField = new JTextField();
@@ -108,23 +104,23 @@ public class FCSAppUI extends JFrame {
 
         JButton registerButton = new JButton("Register");
         registerButton.addActionListener(e -> {
-            try {
-                int id = Integer.parseInt(idField.getText());
-                String name = nameField.getText();
-                String email = emailField.getText();
-                String password = new String(passwordField.getPassword());
-                String role = "member"; // Default role assigned
+            String name = nameField.getText();
+            String email = emailField.getText();
+            String password = new String(passwordField.getPassword());
+            String role = "Member"; // Default role assigned (matches database)
 
-                User newUser = new User(id, name, email, password, role);
-                boolean isRegistered = authService.registerUser(newUser);
-                if (isRegistered) {
-                    JOptionPane.showMessageDialog(dialog, "Registration successful!");
-                    dialog.dispose();
-                } else {
-                    JOptionPane.showMessageDialog(dialog, "Registration failed. Please try again.");
-                }
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(dialog, "Invalid ID format. Please enter a valid number.");
+            if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "All fields are required.");
+                return;
+            }
+
+            User newUser = new User(name, email, password, role);
+            boolean isRegistered = authService.registerUser(newUser);
+            if (isRegistered) {
+                JOptionPane.showMessageDialog(dialog, "Registration successful!");
+                dialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Registration failed. Please try again.");
             }
         });
         dialog.add(registerButton);

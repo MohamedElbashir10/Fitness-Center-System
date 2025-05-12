@@ -7,8 +7,8 @@ public class Member extends User {
     private List<WorkoutSession> reservedSessions; 
 
     // Construtor
-    public Member(int id, String name, String username, String password) {
-        super(id, name, username, password, "Member");
+    public Member(String name, String username, String password) {
+        super(name, username, password, "Member");
         this.reservedSessions = new ArrayList<>();
     }
 
