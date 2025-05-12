@@ -82,10 +82,10 @@ public class UserInteractionHandler {
 
         switch (choice) {
             case "1":
-                schedule.displaySchedule();
+                schedule.getScheduledSessions();
                 break;
             case "2":
-                schedule.displaySchedule();
+                schedule.getScheduledSessions();
                 System.out.print("Enter Session ID to reserve: ");
                 String sessionId = scanner.nextLine();
                 WorkoutSession session = schedule.getScheduledSessions().stream()
@@ -96,7 +96,7 @@ public class UserInteractionHandler {
                     boolean added = session.addParticipant(member);
                     if (added) {
                         LoggerUtils.logSuccess("Reservation successful!");
-                        NotifService.sendBookingConfirmation(member.getUsername(),
+                        NotificationService.sendBookingConfirmation(member.getUsername(),
                                 session.getExerciseType() + " on " + session.getDateTime());
                     } else {
                         LoggerUtils.logError("Session is full.");
