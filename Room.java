@@ -3,6 +3,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.sql.*;
 
 public class Room {
     private String name;
@@ -24,7 +25,6 @@ public class Room {
         LocalDateTime endTime = startTime.plusHours(1); // Assume 1-hour sessions
         for (LocalDateTime booked : bookedTimes) {
             LocalDateTime bookedEnd = booked.plusHours(1);
-            // Check for overlap: session starts before booked ends and ends after booked starts
             if (startTime.isBefore(bookedEnd) && endTime.isAfter(booked)) {
                 LoggerUtils.logInfo("Room " + name + " is booked from " + booked + " to " + bookedEnd);
                 return false;
@@ -52,22 +52,62 @@ public class Room {
                         .collect(Collectors.joining("\n"));
     }
 
-    public void addRoom() {
-        LoggerUtils.logInfo("Room " + name + " has been added to the system.");
-        // Additional logic for adding a room to a database or system can be implemented here
+    public boolean addRoom() {
+        // Validate inputs
+        if (name == null || name.trim().isEmpty()) {
+            LoggerUtils.logError("Room name is empty or null");
+            throw new IllegalArgumentException("Room name cannot be empty");
+        }
+        if (capacity <= 0) {
+            LoggerUtils.logError("Invalid capacity: " + capacity);
+            throw new IllegalArgumentException("Capacity must be positive");
+        }
+
+        try (Connection conn = new DatabaseHandler().connect()) {
+            // Check for duplicate name
+            String checkQuery = "SELECT COUNT(*) FROM rooms WHERE name = ?";
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
+                checkStmt.setString(1, name);
+                ResultSet rs = checkStmt.executeQuery();
+                if (rs.next() && rs.getInt(1) > 0) {
+                    LoggerUtils.logError("Room name already exists: " + name);
+                    throw new IllegalArgumentException("Room name '" + name + "' already exists");
+                }
+            }
+
+            // Insert new room
+            String insertQuery = "INSERT INTO rooms (name, capacity, description) VALUES (?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setString(1, name);
+                stmt.setInt(2, capacity);
+                stmt.setString(3, description != null ? description : "");
+                int rowsAffected = stmt.executeUpdate();
+                if (rowsAffected > 0) {
+                    try (ResultSet rs = stmt.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            this.id = rs.getInt(1);
+                            this.roomId = this.id;
+                        }
+                    }
+                    LoggerUtils.logSuccess("Room added: " + name + " (ID: " + id + ")");
+                    return true;
+                } else {
+                    LoggerUtils.logError("No rows affected when adding room: " + name);
+                    return false;
+                }
+            }
+        } catch (SQLException e) {
+            LoggerUtils.logError("SQL error adding room '" + name + "': " + e.getMessage());
+            throw new RuntimeException("Database error: " + e.getMessage(), e);
+        }
     }
 
-    public void updateRoom(String newName, int newCapacity, String newDescription) {
-        LoggerUtils.logInfo("Updating room " + name + "...");
-        this.name = newName;
-        this.capacity = newCapacity;
-        this.description = newDescription;
-        LoggerUtils.logInfo("Room updated successfully: " + getRoomDetails());
+    public void updateRoom() {
+        // Placeholder for future implementation
     }
 
     public void deleteRoom() {
-        LoggerUtils.logInfo("Room " + name + " has been deleted from the system.");
-        // Additional logic for removing a room from a database or system can be implemented here
+        // Placeholder for future implementation
     }
 
     public String getRoomDetails() {

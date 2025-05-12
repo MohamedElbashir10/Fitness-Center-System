@@ -47,7 +47,7 @@ public class Schedule {
                         trainer
                     );
                     if (room != null && !room.isAvailable(startTime)) {
-                        LoggerUtils.logError("Room " + room.getName() + " already booked for session ID=" + session.getSessionID() + " at " + startTime);
+                        LoggerUtils.logError("Room " + room.getName() + " already booked for session ID=" + session.getSessionID());
                         continue;
                     }
                     scheduledSessions.add(session);
@@ -95,19 +95,23 @@ public class Schedule {
 
     public boolean scheduleWorkout(Admin admin, WorkoutSession session, Trainer trainer, Room room) {
         // Check trainer availability
+        LocalDateTime sessionStart = session.getDateTime();
+        LocalDateTime sessionEnd = sessionStart.plusHours(1);
         boolean isTrainerAvailable = trainer.getAvailabilitySlots().stream()
-                .anyMatch(slot -> slot.getDate().equals(session.getDateTime().toLocalDate())
-                        && slot.getStartTime().isBefore(session.getDateTime().toLocalTime())
-                        && slot.getEndTime().isAfter(session.getDateTime().toLocalTime().plusHours(1)));
+                .anyMatch(slot -> slot.getDate().equals(sessionStart.toLocalDate())
+                        && !slot.getStartTime().isAfter(sessionStart.toLocalTime())
+                        && !slot.getEndTime().isBefore(sessionEnd.toLocalTime()));
 
         if (!isTrainerAvailable) {
-            LoggerUtils.logError("Trainer " + trainer.getUsername() + " is not available at " + session.getDateTime());
+            StringBuilder errorMsg = new StringBuilder("Trainer " + trainer.getUsername() + " is not available at " + sessionStart + ". Available slots:\n");
+            errorMsg.append(trainer.getFormattedAvailability());
+            LoggerUtils.logError(errorMsg.toString());
             return false;
         }
 
         // Check room availability
-        if (room == null || !room.isAvailable(session.getDateTime())) {
-            String errorMsg = room == null ? "Room is null" : "Room " + room.getName() + " is already booked at " + session.getDateTime();
+        if (room == null || !room.isAvailable(sessionStart)) {
+            String errorMsg = room == null ? "Room is null" : "Room " + room.getName() + " is already booked at " + sessionStart;
             LoggerUtils.logError(errorMsg);
             return false;
         }
@@ -123,8 +127,8 @@ public class Schedule {
                 stmt.setInt(1, typeId);
                 stmt.setInt(2, trainer.getId());
                 stmt.setInt(3, room.getId());
-                stmt.setTimestamp(4, Timestamp.valueOf(session.getDateTime()));
-                stmt.setTimestamp(5, Timestamp.valueOf(session.getDateTime().plusHours(1)));
+                stmt.setTimestamp(4, Timestamp.valueOf(sessionStart));
+                stmt.setTimestamp(5, Timestamp.valueOf(sessionEnd));
                 int rowsAffected = stmt.executeUpdate();
                 if (rowsAffected > 0) {
                     try (ResultSet rs = stmt.getGeneratedKeys()) {
@@ -135,7 +139,7 @@ public class Schedule {
                     session.setRoom(room);
                     session.setTrainer(trainer);
                     trainer.assignSession(session);
-                    room.bookRoom(session.getDateTime());
+                    room.bookRoom(sessionStart);
                     scheduledSessions.add(session);
                     LoggerUtils.logSuccess("Workout session scheduled by admin: " + admin.getUsername() + ", Session ID: " + session.getSessionID());
                     return true;

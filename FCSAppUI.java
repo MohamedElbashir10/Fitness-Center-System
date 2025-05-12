@@ -604,6 +604,127 @@ public class FCSAppUI extends JFrame {
             dialog.setVisible(true);
         });
 
+        JButton viewTrainerAvailabilityButton = createStyledButton("View Trainer Availability", BUTTON_COLOR);
+        viewTrainerAvailabilityButton.setToolTipText("View availability slots for trainers");
+        viewTrainerAvailabilityButton.addActionListener(e -> {
+            JDialog dialog = createStyledDialog("View Trainer Availability");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            JLabel trainerLabel = new JLabel("Select Trainer:");
+            trainerLabel.setFont(LABEL_FONT);
+            dialogPanel.add(trainerLabel, gbc);
+
+            gbc.gridx = 1;
+            List<User> trainers = getTrainers();
+            JComboBox<String> trainerCombo = new JComboBox<>(
+                    trainers.stream().map(t -> t.getUsername() + " (" + t.getName() + ")").toArray(String[]::new));
+            trainerCombo.setFont(INPUT_FONT);
+            dialogPanel.add(trainerCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            gbc.gridwidth = 2;
+            JTextArea availabilityArea = new JTextArea();
+            availabilityArea.setEditable(false);
+            availabilityArea.setFont(INPUT_FONT);
+            JScrollPane availabilityScroll = new JScrollPane(availabilityArea);
+            availabilityScroll.setPreferredSize(new Dimension(300, 100));
+            dialogPanel.add(availabilityScroll, gbc);
+
+            trainerCombo.addActionListener(evt -> {
+                String trainerSelection = (String) trainerCombo.getSelectedItem();
+                if (trainerSelection != null) {
+                    String username = trainerSelection.split(" ")[0];
+                    Trainer trainer = (Trainer) trainers.stream()
+                            .filter(t -> t.getUsername().equals(username)).findFirst().orElse(null);
+                    if (trainer != null) {
+                        availabilityArea.setText(trainer.getFormattedAvailability());
+                    }
+                }
+            });
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
+        });
+
+        JButton addRoomButton = createStyledButton("Add Room", BUTTON_COLOR);
+        addRoomButton.setToolTipText("Add a new room to the fitness center");
+        addRoomButton.addActionListener(e -> {
+            JDialog dialog = createStyledDialog("Add Room");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            JLabel nameLabel = new JLabel("Room Name:");
+            nameLabel.setFont(LABEL_FONT);
+            dialogPanel.add(nameLabel, gbc);
+
+            gbc.gridx = 1;
+            JTextField nameField = new JTextField(15);
+            nameField.setFont(INPUT_FONT);
+            dialogPanel.add(nameField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            JLabel capacityLabel = new JLabel("Capacity:");
+            capacityLabel.setFont(LABEL_FONT);
+            dialogPanel.add(capacityLabel, gbc);
+
+            gbc.gridx = 1;
+            Integer[] capacities = {5, 10, 15, 20, 25};
+            JComboBox<Integer> capacityCombo = new JComboBox<>(capacities);
+            capacityCombo.setFont(INPUT_FONT);
+            dialogPanel.add(capacityCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            JLabel descLabel = new JLabel("Description:");
+            descLabel.setFont(LABEL_FONT);
+            dialogPanel.add(descLabel, gbc);
+
+            gbc.gridx = 1;
+            JTextField descField = new JTextField(15);
+            descField.setFont(INPUT_FONT);
+            dialogPanel.add(descField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 3;
+            gbc.gridwidth = 2;
+            JButton addButton = createStyledButton("Add", BUTTON_COLOR);
+            addButton.addActionListener(evt -> {
+                String name = nameField.getText();
+                Integer capacity = (Integer) capacityCombo.getSelectedItem();
+                String description = descField.getText();
+
+                if (name.isBlank() || capacity == null) {
+                    JOptionPane.showMessageDialog(dialog, "Room name and capacity are required.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                Room newRoom = new Room(name, 0, capacity, description);
+                if (newRoom.addRoom()) {
+                    JOptionPane.showMessageDialog(dialog, "Room added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Failed to add room. Name may already exist.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            dialogPanel.add(addButton, gbc);
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
+        });
+
         JButton createTrainerButton = createStyledButton("Create Trainer Account", BUTTON_COLOR);
         createTrainerButton.setToolTipText("Create a new trainer account");
         createTrainerButton.addActionListener(e -> {
@@ -826,6 +947,10 @@ public class FCSAppUI extends JFrame {
         panel.add(Box.createVerticalStrut(10));
         panel.add(viewRoomBookingsButton);
         panel.add(Box.createVerticalStrut(10));
+        panel.add(viewTrainerAvailabilityButton);
+        panel.add(Box.createVerticalStrut(10));
+        panel.add(addRoomButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(createTrainerButton);
         panel.add(Box.createVerticalStrut(10));
         panel.add(removeTrainerButton);
@@ -960,7 +1085,7 @@ public class FCSAppUI extends JFrame {
                 }
 
                 String sessionId = "SES" + System.currentTimeMillis();
-                LocalDateTime dateTime = LocalDateTime.parse(date + "T" + time);
+                LocalDateTime dateTime = LocalDateTime.parse(date + "T" + time + ":00");
 
                 WorkoutSession session = new WorkoutSession(
                         sessionId, exerciseType, dateTime, capacity, room, trainer);
@@ -972,18 +1097,13 @@ public class FCSAppUI extends JFrame {
                     String errorMsg = "Failed to schedule session. ";
                     if (!room.isAvailable(dateTime)) {
                         errorMsg += "Room " + room.getName() + " is booked at " + dateTime + ". Check room bookings for details.";
-                    } else if (!trainer.getAvailabilitySlots().stream()
-                            .anyMatch(slot -> slot.getDate().equals(dateTime.toLocalDate())
-                                    && slot.getStartTime().isBefore(dateTime.toLocalTime())
-                                    && slot.getEndTime().isAfter(dateTime.toLocalTime().plusHours(1)))) {
-                        errorMsg += "Trainer " + trainer.getUsername() + " is not available at " + dateTime + ".";
                     } else {
-                        errorMsg += "Check trainer/room availability or database errors.";
+                        errorMsg += "Trainer " + trainer.getUsername() + " is not available at " + dateTime + ".\nAvailable slots:\n" + trainer.getFormattedAvailability();
                     }
-                    JOptionPane.showMessageDialog(dialog, errorMsg, "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, new JScrollPane(new JTextArea(errorMsg)), "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "Invalid input. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "Invalid input: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
         panel.add(scheduleButton, gbc);
