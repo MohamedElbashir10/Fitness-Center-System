@@ -1,9 +1,8 @@
 import java.time.LocalDateTime;
 
 public class Reservation {
-
     private String reservationID;
-    private Member member; // Only members can make a reservation
+    private Member member;
     private WorkoutSession session;
     private LocalDateTime reservationTimestamp;
 
@@ -16,33 +15,50 @@ public class Reservation {
 
     public static Reservation createReservation(String reservationID, Member member, WorkoutSession session) {
         if (session.getParticipants().contains(member)) {
-            LoggerUtils.logError("Member has already reserved this session.");
+            LoggerUtils.logError("Member already reserved this session.");
             return null;
         }
 
         if (session.getCurrentOccupancy() >= session.getMaxCapacity()) {
-            LoggerUtils.logError("Cannot reserve: session is full.");
+            LoggerUtils.logError("Session is full.");
             return null;
         }
 
-        boolean added = session.addParticipant(member);
-        if (added) {
-            LoggerUtils.logSuccess("Reservation created for session: " + session.getSessionID());
+        boolean trainerAvailable = DatabaseHandler.checkAvailability(
+            session.getTrainer().getId(), null,
+            session.getDateTime().toLocalDate(),
+            session.getDateTime().toLocalTime());
+
+        boolean roomAvailable = DatabaseHandler.checkAvailability(
+            null, session.getRoom().getId(),
+            session.getDateTime().toLocalDate(),
+            session.getDateTime().toLocalTime());
+
+        if (!trainerAvailable) {
+            LoggerUtils.logError("Trainer not available at this time.");
+            return null;
+        }
+
+        if (!roomAvailable) {
+            LoggerUtils.logError("Room not available at this time.");
+            return null;
+        }
+
+        if (session.addParticipant(member)) {
+            LoggerUtils.logSuccess("Reservation successful.");
             return new Reservation(reservationID, member, session);
         } else {
-            LoggerUtils.logError("Unknown error while adding participant.");
+            LoggerUtils.logError("Failed to add participant.");
             return null;
         }
     }
 
     public boolean cancelReservation() {
-        boolean removed = session.removeParticipant(member);
-
-        if (removed) {
-            LoggerUtils.logSuccess("Reservation cancelled for member: " + member.getUsername());
+        if (session.removeParticipant(member)) {
+            LoggerUtils.logSuccess("Reservation cancelled.");
             return true;
         } else {
-            LoggerUtils.logError("Member was not enrolled in this session.");
+            LoggerUtils.logError("Member was not enrolled.");
             return false;
         }
     }
@@ -51,14 +67,10 @@ public class Reservation {
         LoggerUtils.logSection("Reservation Details");
         LoggerUtils.logInfo("Reservation ID: " + reservationID);
         LoggerUtils.logInfo("Member: " + member.getUsername());
-        LoggerUtils.logInfo("Session: " + session.getExerciseType() + " (" + session.getSessionID() + ")");
-        LoggerUtils.logInfo("Scheduled Time: " + session.getDateTime());
-        LoggerUtils.logInfo("Room: " + session.getRoom().getName());
-        LoggerUtils.logInfo("Trainer: " + session.getTrainer().getUsername());
-        LoggerUtils.logInfo("Reservation Time: " + reservationTimestamp);
+        LoggerUtils.logInfo("Session ID: " + session.getSessionID());
+        LoggerUtils.logInfo("Time: " + session.getDateTime());
     }
 
-    // Getters
     public String getReservationID() {
         return reservationID;
     }

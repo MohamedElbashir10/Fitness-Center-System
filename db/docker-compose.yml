@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: fcsdb
+      MYSQL_DATABASE: fcsDatabase
       MYSQL_USER: fcsuser
       MYSQL_PASSWORD: fcspassword
     ports:
