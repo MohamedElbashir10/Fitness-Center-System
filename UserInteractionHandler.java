@@ -96,7 +96,7 @@ public class UserInteractionHandler {
                     boolean added = session.addParticipant(member);
                     if (added) {
                         LoggerUtils.logSuccess("Reservation successful!");
-                        NotificationService.sendBookingConfirmation(member.getUsername(),
+                        NotifService.sendBookingConfirmation(member.getUsername(),
                                 session.getExerciseType() + " on " + session.getDateTime());
                     } else {
                         LoggerUtils.logError("Session is full.");
