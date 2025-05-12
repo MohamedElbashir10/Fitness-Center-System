@@ -1,93 +1,150 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 public class FCSAppUI extends JFrame {
 
-    private AuthService authService;
+    private final AuthService authService;
 
     public FCSAppUI(AuthService authService) {
         this.authService = authService;
-        initializeUI();
+        initializeWelcomePage();
     }
 
-    private void initializeUI() {
-        setTitle("FCS Fitness Center System");
+    private void initializeWelcomePage() {
+        setTitle("FCS Fitness Center");
         setSize(400, 300);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Main panel
-        JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(4, 1, 10, 10));
+        JPanel panel = new JPanel(new BorderLayout());
 
-        // Buttons
-        JButton loginButton = new JButton("Login");
-        JButton registerButton = new JButton("Register");
-        JButton viewScheduleButton = new JButton("View Schedule");
-        JButton exitButton = new JButton("Exit");
+        JLabel welcomeLabel = new JLabel("Welcome to FCS Fitness Center!", SwingConstants.CENTER);
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        panel.add(welcomeLabel, BorderLayout.CENTER);
 
-        // Add action listeners
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                displayLoginScreen();
-            }
-        });
+        JButton startButton = new JButton("Start");
+        startButton.addActionListener(e -> initializeMainMenu());
+        panel.add(startButton, BorderLayout.SOUTH);
 
-        registerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                displayRegistrationScreen();
-            }
-        });
-
-        viewScheduleButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                displayScheduleScreen();
-            }
-        });
-
-        exitButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.exit(0);
-            }
-        });
-
-        // Add buttons to panel
-        panel.add(loginButton);
-        panel.add(registerButton);
-        panel.add(viewScheduleButton);
-        panel.add(exitButton);
-
-        // Add panel to frame
         add(panel);
+        setVisible(true);
     }
 
-    private void displayLoginScreen() {
-        LoginUI loginUI = new LoginUI(authService);
-        User user = loginUI.displayLoginScreen();
-        if (user != null) {
-            JOptionPane.showMessageDialog(this, "Welcome, " + user.getName() + "!", "Login Successful", JOptionPane.INFORMATION_MESSAGE);
+    private void initializeMainMenu() {
+        getContentPane().removeAll();
+        setTitle("FCS Main Menu");
+
+        JPanel panel = new JPanel(new GridLayout(3, 1, 10, 10));
+
+        JButton loginButton = new JButton("Login");
+        JButton registerButton = new JButton("Register");
+        JButton exitButton = new JButton("Exit");
+
+        loginButton.addActionListener(e -> displayLoginDialog());
+        registerButton.addActionListener(e -> displayRegistrationDialog());
+        exitButton.addActionListener(e -> System.exit(0));
+
+        panel.add(loginButton);
+        panel.add(registerButton);
+        panel.add(exitButton);
+
+        add(panel);
+        revalidate();
+        repaint();
+    }
+
+    private void displayLoginDialog() {
+        JDialog dialog = new JDialog(this, "Login", true);
+        dialog.setSize(300, 200);
+        dialog.setLayout(new GridLayout(3, 2));
+
+        dialog.add(new JLabel("Username:"));
+        JTextField usernameField = new JTextField();
+        dialog.add(usernameField);
+
+        dialog.add(new JLabel("Password:"));
+        JPasswordField passwordField = new JPasswordField();
+        dialog.add(passwordField);
+
+        JButton loginButton = new JButton("Login");
+        loginButton.addActionListener(e -> {
+            String username = usernameField.getText();
+            String password = new String(passwordField.getPassword());
+
+            User user = authService.authenticate(username, password);
+            if (user != null) {
+                JOptionPane.showMessageDialog(dialog, "Welcome, " + user.getName() + "!", "Login Successful", JOptionPane.INFORMATION_MESSAGE);
+                dialog.dispose();
+                handleUserActions(user);
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Login failed. Invalid username or password.");
+            }
+        });
+        dialog.add(loginButton);
+
+        dialog.setVisible(true);
+    }
+
+    private void displayRegistrationDialog() {
+        JDialog dialog = new JDialog(this, "Register", true);
+        dialog.setSize(400, 250);
+        dialog.setLayout(new GridLayout(5, 2));
+
+        dialog.add(new JLabel("ID:"));
+        JTextField idField = new JTextField();
+        dialog.add(idField);
+
+        dialog.add(new JLabel("Full Name:"));
+        JTextField nameField = new JTextField();
+        dialog.add(nameField);
+
+        dialog.add(new JLabel("Email (Username):"));
+        JTextField emailField = new JTextField();
+        dialog.add(emailField);
+
+        dialog.add(new JLabel("Password:"));
+        JPasswordField passwordField = new JPasswordField();
+        dialog.add(passwordField);
+
+        JButton registerButton = new JButton("Register");
+        registerButton.addActionListener(e -> {
+            try {
+                int id = Integer.parseInt(idField.getText());
+                String name = nameField.getText();
+                String email = emailField.getText();
+                String password = new String(passwordField.getPassword());
+                String role = "member"; // Default role assigned
+
+                User newUser = new User(id, name, email, password, role);
+                boolean isRegistered = authService.registerUser(newUser);
+                if (isRegistered) {
+                    JOptionPane.showMessageDialog(dialog, "Registration successful!");
+                    dialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Registration failed. Please try again.");
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog, "Invalid ID format. Please enter a valid number.");
+            }
+        });
+        dialog.add(registerButton);
+
+        dialog.setVisible(true);
+    }
+
+    private void handleUserActions(User user) {
+        String role = user.getRole().toLowerCase();
+        switch (role) {
+            case "member" -> JOptionPane.showMessageDialog(this, "Member Panel: Access your features.");
+            case "trainer" -> JOptionPane.showMessageDialog(this, "Trainer Panel: Manage your sessions.");
+            case "admin" -> JOptionPane.showMessageDialog(this, "Admin Panel: Manage the system.");
+            default -> JOptionPane.showMessageDialog(this, "Unknown role. Please contact support.");
         }
     }
 
-    private void displayRegistrationScreen() {
-        JOptionPane.showMessageDialog(this, "Registration functionality is not implemented yet.", "Info", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void displayScheduleScreen() {
-        JOptionPane.showMessageDialog(this, "Schedule viewing functionality is not implemented yet.", "Info", JOptionPane.INFORMATION_MESSAGE);
-    }
-
     public static void main(String[] args) {
-        AuthService authService = new AuthService();
-        SwingUtilities.invokeLater(() -> {
-            FCSAppUI app = new FCSAppUI(authService);
-            app.setVisible(true);
-        });
+        DatabaseHandler dbHandler = new DatabaseHandler();
+        AuthService authService = new AuthService(dbHandler);
+        SwingUtilities.invokeLater(() -> new FCSAppUI(authService));
     }
 }
