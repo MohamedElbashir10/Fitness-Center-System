@@ -2,24 +2,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Member extends User {
-    
-    // List of sessions the member has reserved
-    private List<WorkoutSession> reservedSessions; 
+    private List<WorkoutSession> reservedSessions;
 
-    // Construtor
     public Member(String name, String username, String password) {
         super(name, username, password, "Member");
         this.reservedSessions = new ArrayList<>();
     }
 
-    // Reserving a session method
     public void reserveSession(WorkoutSession session) {
         reservedSessions.add(session);
     }
 
-    // ReservedSession by the member Getter
+    public boolean cancelReservation(WorkoutSession session) {
+        return reservedSessions.remove(session);
+    }
+
     public List<WorkoutSession> getReservedSessions() {
         return reservedSessions;
     }
 
+    public String viewSessions(Schedule schedule) {
+        return schedule.getFormattedSchedule();
+    }
+
+    public String checkSchedule(Schedule schedule) {
+        return schedule.getFormattedSchedule();
+    }
 }

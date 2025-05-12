@@ -143,7 +143,7 @@ public class UserInteractionHandler {
                 System.out.print("Enter max capacity: ");
                 int maxCapacity = Integer.parseInt(scanner.nextLine());
 
-                Trainer trainer = new Trainer(0066, "Trainer One", "trainer1", "pass123");
+                Trainer trainer = new Trainer("Trainer One", "trainer1", "pass123");
                 Room room = new Room("Main Room", 201, 30, "");
                 WorkoutSession session = new WorkoutSession(sessionID, exerciseType,
                         LocalDateTime.parse(date + "T" + time), maxCapacity, room, trainer);

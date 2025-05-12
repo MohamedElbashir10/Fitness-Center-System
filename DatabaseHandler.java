@@ -1,4 +1,6 @@
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class DatabaseHandler {
     public Connection connect() throws SQLException {
@@ -37,5 +39,68 @@ public class DatabaseHandler {
             }
         }
         return null;
+    }
+     public static boolean checkAvailability(Integer trainerId, Integer roomId, LocalDate date, LocalTime time) {
+        try (Connection conn = new DatabaseHandler().connect()) {
+            // Convert LocalDateTime for session checks
+            Timestamp checkTime = Timestamp.valueOf(date.atTime(time));
+
+            if (trainerId != null) {
+                // Step 1: Check if trainer has an availability slot
+                String availabilityQuery = "SELECT COUNT(*) FROM availability WHERE trainer_id = ? AND date = ? " +
+                                          "AND start_time <= ? AND end_time >= ?";
+                try (PreparedStatement stmt = conn.prepareStatement(availabilityQuery)) {
+                    stmt.setInt(1, trainerId);
+                    stmt.setDate(2, java.sql.Date.valueOf(date));
+                    stmt.setTime(3, java.sql.Time.valueOf(time));
+                    stmt.setTime(4, java.sql.Time.valueOf(time));
+                    ResultSet rs = stmt.executeQuery();
+                    rs.next();
+                    if (rs.getInt(1) == 0) {
+                        LoggerUtils.logError("Trainer has no availability for this time.");
+                        return false;
+                    }
+                }
+
+                // Step 2: Check for conflicting sessions
+                String sessionQuery = "SELECT COUNT(*) FROM sessions WHERE trainer_id = ? AND start_time <= ? AND end_time >= ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sessionQuery)) {
+                    stmt.setInt(1, trainerId);
+                    stmt.setTimestamp(2, checkTime);
+                    stmt.setTimestamp(3, checkTime);
+                    ResultSet rs = stmt.executeQuery();
+                    rs.next();
+                    if (rs.getInt(1) > 0) {
+                        LoggerUtils.logError("Trainer is already booked for this time.");
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            if (roomId != null) {
+                // Check for conflicting sessions in the room
+                String sessionQuery = "SELECT COUNT(*) FROM sessions WHERE room_id = ? AND start_time <= ? AND end_time >= ?";
+                try (PreparedStatement stmt = conn.prepareStatement(sessionQuery)) {
+                    stmt.setInt(1, roomId);
+                    stmt.setTimestamp(2, checkTime);
+                    stmt.setTimestamp(3, checkTime);
+                    ResultSet rs = stmt.executeQuery();
+                    rs.next();
+                    if (rs.getInt(1) > 0) {
+                        LoggerUtils.logError("Room is already booked for this time.");
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            LoggerUtils.logError("Either trainerId or roomId must be provided.");
+            return false;
+
+        } catch (SQLException e) {
+            LoggerUtils.logError("Error checking availability: " + e.getMessage());
+            return false;
+        }
     }
 }
