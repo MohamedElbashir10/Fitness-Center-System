@@ -1,7 +1,8 @@
-// Room.java
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Room {
     private String name;
@@ -19,24 +20,54 @@ public class Room {
         this.description = description;
     }
 
-    public boolean isAvailable(LocalDateTime dateTime) {
-        return !bookedTimes.contains(dateTime);
+    public boolean isAvailable(LocalDateTime startTime) {
+        LocalDateTime endTime = startTime.plusHours(1); // Assume 1-hour sessions
+        for (LocalDateTime booked : bookedTimes) {
+            LocalDateTime bookedEnd = booked.plusHours(1);
+            // Check for overlap: session starts before booked ends and ends after booked starts
+            if (startTime.isBefore(bookedEnd) && endTime.isAfter(booked)) {
+                LoggerUtils.logInfo("Room " + name + " is booked from " + booked + " to " + bookedEnd);
+                return false;
+            }
+        }
+        return true;
     }
 
     public void bookRoom(LocalDateTime dateTime) {
         bookedTimes.add(dateTime);
     }
 
-    public void addRoom() {
-        // Implementation for adding a room
+    public void clearBookings() {
+        bookedTimes.clear();
     }
 
-    public void updateRoom() {
-        // Implementation for updating a room
+    public String getBookedTimes() {
+        if (bookedTimes.isEmpty()) {
+            return "No bookings for room: " + name;
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        return "Booked times for room " + name + ":\n" +
+                bookedTimes.stream()
+                        .map(time -> time.format(formatter) + " to " + time.plusHours(1).format(formatter))
+                        .collect(Collectors.joining("\n"));
+    }
+
+    public void addRoom() {
+        LoggerUtils.logInfo("Room " + name + " has been added to the system.");
+        // Additional logic for adding a room to a database or system can be implemented here
+    }
+
+    public void updateRoom(String newName, int newCapacity, String newDescription) {
+        LoggerUtils.logInfo("Updating room " + name + "...");
+        this.name = newName;
+        this.capacity = newCapacity;
+        this.description = newDescription;
+        LoggerUtils.logInfo("Room updated successfully: " + getRoomDetails());
     }
 
     public void deleteRoom() {
-        // Implementation for deleting a room
+        LoggerUtils.logInfo("Room " + name + " has been deleted from the system.");
+        // Additional logic for removing a room from a database or system can be implemented here
     }
 
     public String getRoomDetails() {

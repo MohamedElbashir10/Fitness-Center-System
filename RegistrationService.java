@@ -57,10 +57,17 @@ public class RegistrationService {
         return registeredUsersByEmail.containsKey(email);
     }
 
-    public void displayAllUsers() {
-        LoggerUtils.logSection("Registered Users:");
-        for (User user : registeredUsersByEmail.values()) {
-            LoggerUtils.logInfo("Role: " + user.getClass().getSimpleName() + " | Name: " + user.getName() + " | Username: " + user.getUsername());
+    public String displayAllUsers() {
+        if (registeredUsersByEmail.isEmpty()) {
+            return "No registered users.";
         }
+        StringBuilder userList = new StringBuilder("Registered Users:\n");
+        for (User user : registeredUsersByEmail.values()) {
+            userList.append("Role: ").append(user.getClass().getSimpleName())
+                    .append(" | Name: ").append(user.getName())
+                    .append(" | Username: ").append(user.getUsername())
+                    .append("\n");
+        }
+        return userList.toString();
     }
 }

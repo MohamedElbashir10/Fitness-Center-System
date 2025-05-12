@@ -14,6 +14,14 @@ public class Schedule {
 
     private void loadSessionsFromDatabase() {
         try (Connection conn = new DatabaseHandler().connect()) {
+            // Clear existing bookings to prevent duplicates
+            for (WorkoutSession session : scheduledSessions) {
+                if (session.getRoom() != null) {
+                    session.getRoom().clearBookings();
+                }
+            }
+            scheduledSessions.clear();
+
             String query = "SELECT s.id, st.name AS exercise_type, s.start_time, s.end_time, s.room_id, s.trainer_id " +
                           "FROM sessions s JOIN session_types st ON s.type_id = st.id";
             try (PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -22,6 +30,14 @@ public class Schedule {
                     Room room = getRoomById(rs.getInt("room_id"));
                     Trainer trainer = getTrainerById(rs.getInt("trainer_id"));
                     LocalDateTime startTime = rs.getTimestamp("start_time").toLocalDateTime();
+                    LocalDateTime endTime = rs.getTimestamp("end_time").toLocalDateTime();
+
+                    // Validate session times
+                    if (startTime.isAfter(endTime) || startTime.equals(endTime)) {
+                        LoggerUtils.logError("Invalid session time: ID=" + rs.getInt("id") + ", start=" + startTime + ", end=" + endTime);
+                        continue;
+                    }
+
                     WorkoutSession session = new WorkoutSession(
                         String.valueOf(rs.getInt("id")),
                         rs.getString("exercise_type"),
@@ -30,7 +46,14 @@ public class Schedule {
                         room,
                         trainer
                     );
+                    if (room != null && !room.isAvailable(startTime)) {
+                        LoggerUtils.logError("Room " + room.getName() + " already booked for session ID=" + session.getSessionID() + " at " + startTime);
+                        continue;
+                    }
                     scheduledSessions.add(session);
+                    if (room != null) {
+                        room.bookRoom(startTime);
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -71,18 +94,21 @@ public class Schedule {
     }
 
     public boolean scheduleWorkout(Admin admin, WorkoutSession session, Trainer trainer, Room room) {
+        // Check trainer availability
         boolean isTrainerAvailable = trainer.getAvailabilitySlots().stream()
                 .anyMatch(slot -> slot.getDate().equals(session.getDateTime().toLocalDate())
                         && slot.getStartTime().isBefore(session.getDateTime().toLocalTime())
-                        && slot.getEndTime().isAfter(session.getDateTime().toLocalTime()));
+                        && slot.getEndTime().isAfter(session.getDateTime().toLocalTime().plusHours(1)));
 
         if (!isTrainerAvailable) {
-            LoggerUtils.logError("Trainer is not available at the selected time.");
+            LoggerUtils.logError("Trainer " + trainer.getUsername() + " is not available at " + session.getDateTime());
             return false;
         }
 
-        if (!room.isAvailable(session.getDateTime())) {
-            LoggerUtils.logError("Room is already booked for another session at this time.");
+        // Check room availability
+        if (room == null || !room.isAvailable(session.getDateTime())) {
+            String errorMsg = room == null ? "Room is null" : "Room " + room.getName() + " is already booked at " + session.getDateTime();
+            LoggerUtils.logError(errorMsg);
             return false;
         }
 
@@ -111,7 +137,7 @@ public class Schedule {
                     trainer.assignSession(session);
                     room.bookRoom(session.getDateTime());
                     scheduledSessions.add(session);
-                    LoggerUtils.logSuccess("Workout session scheduled by admin: " + admin.getUsername());
+                    LoggerUtils.logSuccess("Workout session scheduled by admin: " + admin.getUsername() + ", Session ID: " + session.getSessionID());
                     return true;
                 }
             }
@@ -183,8 +209,8 @@ public class Schedule {
             scheduleBuilder.append("Session ID: ").append(session.getSessionID())
                     .append("\nExercise: ").append(session.getExerciseType())
                     .append("\nDate & Time: ").append(session.getDateTime().format(formatter))
-                    .append("\nRoom: ").append(session.getRoom().getName())
-                    .append("\nTrainer: ").append(session.getTrainer().getUsername())
+                    .append("\nRoom: ").append(session.getRoom() != null ? session.getRoom().getName() : "N/A")
+                    .append("\nTrainer: ").append(session.getTrainer() != null ? session.getTrainer().getUsername() : "N/A")
                     .append("\n\n");
         }
 

@@ -427,7 +427,7 @@ public class FCSAppUI extends JFrame {
             for (WorkoutSession session : trainer.getAssignedSessions()) {
                 sessions.append("Session: ").append(session.getExerciseType())
                         .append(" | Date: ").append(session.getDateTime())
-                        .append(" | Room: ").append(session.getRoom().getName()).append("\n");
+                        .append(" | Room: ").append(session.getRoom() != null ? session.getRoom().getName() : "N/A").append("\n");
             }
             JOptionPane.showMessageDialog(this, sessions.toString(), "Assigned Sessions", JOptionPane.INFORMATION_MESSAGE);
         });
@@ -549,7 +549,60 @@ public class FCSAppUI extends JFrame {
 
         JButton viewUsersButton = createStyledButton("View All Users", BUTTON_COLOR);
         viewUsersButton.setToolTipText("View all registered users");
-        viewUsersButton.addActionListener(e -> registrationService.displayAllUsers());
+        viewUsersButton.addActionListener(e -> {
+            JTextArea userList = new JTextArea(registrationService.displayAllUsers());
+            userList.setEditable(false);
+            userList.setFont(INPUT_FONT);
+            JOptionPane.showMessageDialog(this, new JScrollPane(userList), "Registered Users", JOptionPane.INFORMATION_MESSAGE);
+        });
+
+        JButton viewRoomBookingsButton = createStyledButton("View Room Bookings", BUTTON_COLOR);
+        viewRoomBookingsButton.setToolTipText("View booked times for all rooms");
+        viewRoomBookingsButton.addActionListener(e -> {
+            JDialog dialog = createStyledDialog("View Room Bookings");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            JLabel roomLabel = new JLabel("Select Room:");
+            roomLabel.setFont(LABEL_FONT);
+            dialogPanel.add(roomLabel, gbc);
+
+            gbc.gridx = 1;
+            List<Room> rooms = getRooms();
+            JComboBox<String> roomCombo = new JComboBox<>(
+                    rooms.stream().map(room -> room.getName() + " (ID: " + room.getId() + ")").toArray(String[]::new));
+            roomCombo.setFont(INPUT_FONT);
+            dialogPanel.add(roomCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            gbc.gridwidth = 2;
+            JTextArea bookingsArea = new JTextArea();
+            bookingsArea.setEditable(false);
+            bookingsArea.setFont(INPUT_FONT);
+            JScrollPane bookingsScroll = new JScrollPane(bookingsArea);
+            bookingsScroll.setPreferredSize(new Dimension(300, 100));
+            dialogPanel.add(bookingsScroll, gbc);
+
+            roomCombo.addActionListener(evt -> {
+                String roomSelection = (String) roomCombo.getSelectedItem();
+                if (roomSelection != null) {
+                    int roomId = Integer.parseInt(roomSelection.replaceAll(".*ID: (\\d+)\\)", "$1"));
+                    Room room = rooms.stream().filter(r -> r.getId() == roomId).findFirst().orElse(null);
+                    if (room != null) {
+                        bookingsArea.setText(room.getBookedTimes());
+                    }
+                }
+            });
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
+        });
 
         JButton createTrainerButton = createStyledButton("Create Trainer Account", BUTTON_COLOR);
         createTrainerButton.setToolTipText("Create a new trainer account");
@@ -771,6 +824,8 @@ public class FCSAppUI extends JFrame {
         panel.add(Box.createVerticalStrut(10));
         panel.add(viewUsersButton);
         panel.add(Box.createVerticalStrut(10));
+        panel.add(viewRoomBookingsButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(createTrainerButton);
         panel.add(Box.createVerticalStrut(10));
         panel.add(removeTrainerButton);
@@ -914,7 +969,18 @@ public class FCSAppUI extends JFrame {
                     JOptionPane.showMessageDialog(dialog, "Session scheduled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
                     dialog.dispose();
                 } else {
-                    JOptionPane.showMessageDialog(dialog, "Failed to schedule session. Check trainer/room availability.", "Error", JOptionPane.ERROR_MESSAGE);
+                    String errorMsg = "Failed to schedule session. ";
+                    if (!room.isAvailable(dateTime)) {
+                        errorMsg += "Room " + room.getName() + " is booked at " + dateTime + ". Check room bookings for details.";
+                    } else if (!trainer.getAvailabilitySlots().stream()
+                            .anyMatch(slot -> slot.getDate().equals(dateTime.toLocalDate())
+                                    && slot.getStartTime().isBefore(dateTime.toLocalTime())
+                                    && slot.getEndTime().isAfter(dateTime.toLocalTime().plusHours(1)))) {
+                        errorMsg += "Trainer " + trainer.getUsername() + " is not available at " + dateTime + ".";
+                    } else {
+                        errorMsg += "Check trainer/room availability or database errors.";
+                    }
+                    JOptionPane.showMessageDialog(dialog, errorMsg, "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(dialog, "Invalid input. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
