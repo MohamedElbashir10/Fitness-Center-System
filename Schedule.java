@@ -9,6 +9,7 @@ public class Schedule {
         this.scheduledSessions = new ArrayList<>();
     }
 
+
     public boolean scheduleWorkout(Admin admin, WorkoutSession session, Trainer trainer, Room room) {
         boolean isTrainerAvailable = trainer.getAvailabilitySlots().stream()
                 .anyMatch(slot -> slot.getDate().equals(session.getDateTime().toLocalDate())
@@ -21,13 +22,15 @@ public class Schedule {
         }
 
         for (WorkoutSession existing : scheduledSessions) {
-            if (existing.getRoom().getId() == room.getId()
+            if (existing.getRoom() != null && room != null
+                    && existing.getRoom().getId() == room.getId()
                     && existing.getDateTime().equals(session.getDateTime())) {
                 LoggerUtils.logError("Room is already booked for another session at this time.");
                 return false;
             }
 
-            if (existing.getTrainer().getId() == trainer.getId()
+            if (existing.getTrainer() != null && trainer != null
+                    && existing.getTrainer().getId() == (trainer.getId())
                     && existing.getDateTime().equals(session.getDateTime())) {
                 LoggerUtils.logError("Trainer already has another session at this time.");
                 return false;
@@ -49,12 +52,27 @@ public class Schedule {
             LoggerUtils.logInfo("Session ID: " + session.getSessionID()
                     + " | Exercise: " + session.getExerciseType()
                     + " | Date: " + session.getDateTime()
-                    + " | Room: " + session.getRoom().getName()
-                    + " | Trainer: " + session.getTrainer().getUsername());
+                    + " | Room: " + (session.getRoom() != null ? session.getRoom().getName() : "N/A")
+                    + " | Trainer: " + (session.getTrainer() != null ? session.getTrainer().getUsername() : "N/A"));
         }
     }
 
     public List<WorkoutSession> getScheduledSessions() {
         return scheduledSessions;
     }
+
+    public void removeWorkoutSession(WorkoutSession session) {
+        scheduledSessions.remove(session);
+    }
+
+    public List<WorkoutSession> getSessionsForTrainer(Trainer trainer) {
+        List<WorkoutSession> result = new ArrayList<>();
+        for (WorkoutSession session : scheduledSessions) {
+            if (session.getTrainer() != null && session.getTrainer().getId() == (trainer.getId())) {
+                result.add(session);
+            }
+        }
+        return result;
+    }
 }
+
