@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -14,30 +15,41 @@ public class FCSAppUI extends JFrame {
     private final AuthService authService;
     private final Schedule schedule;
     private final RegistrationService registrationService;
+    private static final Font LABEL_FONT = new Font("Arial", Font.BOLD, 14);
+    private static final Font INPUT_FONT = new Font("Arial", Font.PLAIN, 12);
+    private static final Color BUTTON_COLOR = new Color(59, 89, 182);
+    private static final Color CANCEL_COLOR = new Color(182, 59, 59);
 
     public FCSAppUI(AuthService authService) {
         this.authService = authService;
         this.schedule = new Schedule();
         this.registrationService = new RegistrationService();
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setMinimumSize(new Dimension(400, 300));
+        setLocationRelativeTo(null);
+        try {
+            UIManager.setLookAndFeel("com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel");
+        } catch (Exception e) {
+            LoggerUtils.logError("Failed to set Nimbus look and feel: " + e.getMessage());
+        }
         initializeWelcomePage();
     }
 
     private void initializeWelcomePage() {
         setTitle("FCS Fitness Center");
-        setSize(400, 300);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JPanel panel = new JPanel(new BorderLayout());
         JLabel welcomeLabel = new JLabel("Welcome to FCS Fitness Center!", SwingConstants.CENTER);
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 18));
         panel.add(welcomeLabel, BorderLayout.CENTER);
 
-        JButton startButton = new JButton("Start");
+        JButton startButton = createStyledButton("Start", BUTTON_COLOR);
         startButton.addActionListener(e -> initializeMainMenu());
         panel.add(startButton, BorderLayout.SOUTH);
 
-        add(panel);
+        setContentPane(panel);
+        pack();
         setVisible(true);
     }
 
@@ -45,38 +57,63 @@ public class FCSAppUI extends JFrame {
         getContentPane().removeAll();
         setTitle("FCS Main Menu");
 
-        JPanel panel = new JPanel(new GridLayout(3, 1, 10, 10));
-        JButton loginButton = new JButton("Login");
-        JButton registerButton = new JButton("Register");
-        JButton exitButton = new JButton("Exit");
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
+        JButton loginButton = createStyledButton("Login", BUTTON_COLOR);
         loginButton.addActionListener(e -> displayLoginDialog());
+        JButton registerButton = createStyledButton("Register", BUTTON_COLOR);
         registerButton.addActionListener(e -> displayRegistrationDialog());
+        JButton exitButton = createStyledButton("Exit", CANCEL_COLOR);
         exitButton.addActionListener(e -> System.exit(0));
 
         panel.add(loginButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(registerButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(exitButton);
 
-        add(panel);
+        setContentPane(panel);
+        pack();
         revalidate();
         repaint();
     }
 
     private void displayLoginDialog() {
-        JDialog dialog = new JDialog(this, "Login", true);
-        dialog.setSize(300, 200);
-        dialog.setLayout(new GridLayout(3, 2));
+        JDialog dialog = createStyledDialog("Login");
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        dialog.add(new JLabel("Username:"));
-        JTextField usernameField = new JTextField();
-        dialog.add(usernameField);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        JLabel usernameLabel = new JLabel("Username:");
+        usernameLabel.setFont(LABEL_FONT);
+        panel.add(usernameLabel, gbc);
 
-        dialog.add(new JLabel("Password:"));
-        JPasswordField passwordField = new JPasswordField();
-        dialog.add(passwordField);
+        gbc.gridx = 1;
+        JTextField usernameField = new JTextField(15);
+        usernameField.setFont(INPUT_FONT);
+        panel.add(usernameField, gbc);
 
-        JButton loginButton = new JButton("Login");
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        JLabel passwordLabel = new JLabel("Password:");
+        passwordLabel.setFont(LABEL_FONT);
+        panel.add(passwordLabel, gbc);
+
+        gbc.gridx = 1;
+        JPasswordField passwordField = new JPasswordField(15);
+        passwordField.setFont(INPUT_FONT);
+        panel.add(passwordField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        JButton loginButton = createStyledButton("Login", BUTTON_COLOR);
         loginButton.addActionListener(e -> {
             String username = usernameField.getText();
             String password = new String(passwordField.getPassword());
@@ -87,32 +124,61 @@ public class FCSAppUI extends JFrame {
                 dialog.dispose();
                 handleUserActions(user);
             } else {
-                JOptionPane.showMessageDialog(dialog, "Login failed. Invalid username or password.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "Invalid username or password.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
-        dialog.add(loginButton);
+        panel.add(loginButton, gbc);
 
+        dialog.setContentPane(panel);
+        dialog.pack();
         dialog.setVisible(true);
     }
 
     private void displayRegistrationDialog() {
-        JDialog dialog = new JDialog(this, "Register", true);
-        dialog.setSize(400, 250);
-        dialog.setLayout(new GridLayout(4, 2));
+        JDialog dialog = createStyledDialog("Register");
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        dialog.add(new JLabel("Full Name:"));
-        JTextField nameField = new JTextField();
-        dialog.add(nameField);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        JLabel nameLabel = new JLabel("Full Name:");
+        nameLabel.setFont(LABEL_FONT);
+        panel.add(nameLabel, gbc);
 
-        dialog.add(new JLabel("Email (Username):"));
-        JTextField emailField = new JTextField();
-        dialog.add(emailField);
+        gbc.gridx = 1;
+        JTextField nameField = new JTextField(15);
+        nameField.setFont(INPUT_FONT);
+        panel.add(nameField, gbc);
 
-        dialog.add(new JLabel("Password:"));
-        JPasswordField passwordField = new JPasswordField();
-        dialog.add(passwordField);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        JLabel emailLabel = new JLabel("Email (Username):");
+        emailLabel.setFont(LABEL_FONT);
+        panel.add(emailLabel, gbc);
 
-        JButton registerButton = new JButton("Register");
+        gbc.gridx = 1;
+        JTextField emailField = new JTextField(15);
+        emailField.setFont(INPUT_FONT);
+        panel.add(emailField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        JLabel passwordLabel = new JLabel("Password:");
+        passwordLabel.setFont(LABEL_FONT);
+        panel.add(passwordLabel, gbc);
+
+        gbc.gridx = 1;
+        JPasswordField passwordField = new JPasswordField(15);
+        passwordField.setFont(INPUT_FONT);
+        panel.add(passwordField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        JButton registerButton = createStyledButton("Register", BUTTON_COLOR);
         registerButton.addActionListener(e -> {
             String name = nameField.getText();
             String email = emailField.getText();
@@ -133,8 +199,10 @@ public class FCSAppUI extends JFrame {
                 JOptionPane.showMessageDialog(dialog, "Registration failed. Username may already exist.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
-        dialog.add(registerButton);
+        panel.add(registerButton, gbc);
 
+        dialog.setContentPane(panel);
+        dialog.pack();
         dialog.setVisible(true);
     }
 
@@ -158,101 +226,188 @@ public class FCSAppUI extends JFrame {
     private void memberPanel(Member member) {
         getContentPane().removeAll();
         setTitle("Member Panel - Welcome, " + member.getName());
-        setSize(700, 500);
 
         JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
         JTextArea scheduleArea = new JTextArea(member.checkSchedule(schedule));
         scheduleArea.setEditable(false);
-        scheduleArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        scheduleArea.setFont(INPUT_FONT);
         JScrollPane scrollPane = new JScrollPane(scheduleArea);
         panel.add(scrollPane, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 4, 10, 10));
-        JButton viewSessionsButton = new JButton("View Sessions");
-        JButton bookSessionButton = new JButton("Book Session");
-        JButton cancelReservationButton = new JButton("Cancel Reservation");
-        JButton logoutButton = new JButton("Logout");
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
 
+        JButton viewSessionsButton = createStyledButton("View Sessions", BUTTON_COLOR);
+        viewSessionsButton.setToolTipText("View all available workout sessions");
         viewSessionsButton.addActionListener(e -> scheduleArea.setText(member.viewSessions(schedule)));
+
+        JButton bookSessionButton = createStyledButton("Book Session", BUTTON_COLOR);
+        bookSessionButton.setToolTipText("Book a workout session");
         bookSessionButton.addActionListener(e -> {
-            JTextField sessionIdField = new JTextField();
-            Object[] fields = {
-                "Available Sessions:\n" + schedule.getFormattedSchedule() + "\nEnter Session ID:", sessionIdField
-            };
-            int result = JOptionPane.showConfirmDialog(this, fields, "Book Session", JOptionPane.OK_CANCEL_OPTION);
-            if (result == JOptionPane.OK_OPTION) {
-                String sessionId = sessionIdField.getText().trim();
-                if (sessionId.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Session ID is required.", "Error", JOptionPane.ERROR_MESSAGE);
+            JDialog dialog = createStyledDialog("Book Session");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            gbc.gridwidth = 2;
+            JTextArea sessionsArea = new JTextArea(schedule.getFormattedSchedule());
+            sessionsArea.setEditable(false);
+            sessionsArea.setFont(INPUT_FONT);
+            JScrollPane sessionsScroll = new JScrollPane(sessionsArea);
+            sessionsScroll.setPreferredSize(new Dimension(300, 100));
+            dialogPanel.add(sessionsScroll, gbc);
+
+            gbc.gridy = 1;
+            gbc.gridwidth = 1;
+            JLabel sessionLabel = new JLabel("Select Session:");
+            sessionLabel.setFont(LABEL_FONT);
+            dialogPanel.add(sessionLabel, gbc);
+
+            gbc.gridx = 1;
+            JComboBox<String> sessionCombo = new JComboBox<>(
+                    schedule.getScheduledSessions().stream()
+                            .map(s -> s.getSessionID() + ": " + s.getExerciseType() + " on " + s.getDateTime())
+                            .toArray(String[]::new));
+            sessionCombo.setFont(INPUT_FONT);
+            dialogPanel.add(sessionCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            gbc.gridwidth = 2;
+            JButton bookButton = createStyledButton("Book", BUTTON_COLOR);
+            bookButton.addActionListener(evt -> {
+                String sessionSelection = (String) sessionCombo.getSelectedItem();
+                if (sessionSelection == null) {
+                    JOptionPane.showMessageDialog(dialog, "Please select a session.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
+                String sessionId = sessionSelection.split(":")[0];
                 WorkoutSession session = schedule.getScheduledSessions().stream()
                         .filter(s -> s.getSessionID().equals(sessionId))
                         .findFirst().orElse(null);
                 if (session == null) {
-                    JOptionPane.showMessageDialog(this, "Session not found.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Session not found.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 Reservation reservation = Reservation.createReservation("RES" + System.currentTimeMillis(), member, session);
                 if (reservation != null) {
                     member.reserveSession(session);
-                    JOptionPane.showMessageDialog(this, "Session booked successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                    NotificationService.sendBookingConfirmation(member.getUsername(), 
+                    JOptionPane.showMessageDialog(dialog, "Session booked successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    NotificationService.sendBookingConfirmation(
+                            member.getUsername(),
                             session.getExerciseType() + " on " + session.getDateTime());
+                    dialog.dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Booking failed. Session may be full or already reserved.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Booking failed. Session may be full or already reserved.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            }
+            });
+            dialogPanel.add(bookButton, gbc);
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
         });
+
+        JButton cancelReservationButton = createStyledButton("Cancel Reservation", BUTTON_COLOR);
+        cancelReservationButton.setToolTipText("Cancel a booked session");
         cancelReservationButton.addActionListener(e -> {
+            JDialog dialog = createStyledDialog("Cancel Reservation");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            gbc.gridwidth = 2;
             StringBuilder reservations = new StringBuilder("Your Reservations:\n");
             if (member.getReservedSessions().isEmpty()) {
                 reservations.append("No reservations found.");
             } else {
                 for (WorkoutSession s : member.getReservedSessions()) {
-                    reservations.append("Session ID: ").append(s.getSessionID())
-                                .append(", Exercise: ").append(s.getExerciseType())
-                                .append(", Date: ").append(s.getDateTime()).append("\n");
+                    reservations.append(s.getSessionID()).append(": ")
+                            .append(s.getExerciseType()).append(" on ")
+                            .append(s.getDateTime()).append("\n");
                 }
             }
-            JTextField sessionIdField = new JTextField();
-            Object[] fields = {
-                reservations.toString() + "\nEnter Session ID to cancel:", sessionIdField
-            };
-            int result = JOptionPane.showConfirmDialog(this, fields, "Cancel Reservation", JOptionPane.OK_CANCEL_OPTION);
-            if (result == JOptionPane.OK_OPTION) {
-                String sessionId = sessionIdField.getText().trim();
-                if (sessionId.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Session ID is required.", "Error", JOptionPane.ERROR_MESSAGE);
+            JTextArea reservationsArea = new JTextArea(reservations.toString());
+            reservationsArea.setEditable(false);
+            reservationsArea.setFont(INPUT_FONT);
+            JScrollPane reservationsScroll = new JScrollPane(reservationsArea);
+            reservationsScroll.setPreferredSize(new Dimension(300, 100));
+            dialogPanel.add(reservationsScroll, gbc);
+
+            gbc.gridy = 1;
+            gbc.gridwidth = 1;
+            JLabel sessionLabel = new JLabel("Select Reservation:");
+            sessionLabel.setFont(LABEL_FONT);
+            dialogPanel.add(sessionLabel, gbc);
+
+            gbc.gridx = 1;
+            JComboBox<String> reservationCombo = new JComboBox<>(
+                    member.getReservedSessions().stream()
+                            .map(s -> s.getSessionID() + ": " + s.getExerciseType() + " on " + s.getDateTime())
+                            .toArray(String[]::new));
+            reservationCombo.setFont(INPUT_FONT);
+            dialogPanel.add(reservationCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            gbc.gridwidth = 2;
+            JButton cancelButton = createStyledButton("Cancel", BUTTON_COLOR);
+            cancelButton.addActionListener(evt -> {
+                String reservationSelection = (String) reservationCombo.getSelectedItem();
+                if (reservationSelection == null) {
+                    JOptionPane.showMessageDialog(dialog, "Please select a reservation.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
+                String sessionId = reservationSelection.split(":")[0];
                 WorkoutSession toCancel = member.getReservedSessions().stream()
                         .filter(s -> s.getSessionID().equals(sessionId))
                         .findFirst().orElse(null);
                 if (toCancel == null) {
-                    JOptionPane.showMessageDialog(this, "Reservation not found.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Reservation not found.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 Reservation reservation = new Reservation("RES" + System.currentTimeMillis(), member, toCancel);
                 if (reservation.cancelReservation()) {
                     member.cancelReservation(toCancel);
-                    JOptionPane.showMessageDialog(this, "Reservation cancelled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                    NotificationService.sendCancellationNotification(member.getUsername(), 
+                    JOptionPane.showMessageDialog(dialog, "Reservation cancelled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    NotificationService.sendCancellationNotification(
+                            member.getUsername(),
                             toCancel.getExerciseType() + " on " + toCancel.getDateTime());
+                    dialog.dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Cancellation failed.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Cancellation failed.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            }
+            });
+            dialogPanel.add(cancelButton, gbc);
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
         });
+
+        JButton logoutButton = createStyledButton("Logout", CANCEL_COLOR);
+        logoutButton.setToolTipText("Return to main menu");
         logoutButton.addActionListener(e -> initializeMainMenu());
 
         buttonPanel.add(viewSessionsButton);
+        buttonPanel.add(Box.createHorizontalStrut(10));
         buttonPanel.add(bookSessionButton);
+        buttonPanel.add(Box.createHorizontalStrut(10));
         buttonPanel.add(cancelReservationButton);
+        buttonPanel.add(Box.createHorizontalStrut(10));
         buttonPanel.add(logoutButton);
 
         panel.add(buttonPanel, BorderLayout.SOUTH);
-        add(panel);
+        setContentPane(panel);
+        pack();
         revalidate();
         repaint();
     }
@@ -260,55 +415,122 @@ public class FCSAppUI extends JFrame {
     private void trainerPanel(Trainer trainer) {
         getContentPane().removeAll();
         setTitle("Trainer Panel");
-        JPanel panel = new JPanel(new GridLayout(4, 1, 10, 10));
 
-        JButton viewSessionsButton = new JButton("View Assigned Sessions");
-        JButton addAvailabilityButton = new JButton("Add Availability");
-        JButton checkScheduleButton = new JButton("Check Schedule");
-        JButton logoutButton = new JButton("Logout");
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
+        JButton viewSessionsButton = createStyledButton("View Assigned Sessions", BUTTON_COLOR);
+        viewSessionsButton.setToolTipText("View your assigned workout sessions");
         viewSessionsButton.addActionListener(e -> {
             StringBuilder sessions = new StringBuilder("Assigned Sessions:\n");
             for (WorkoutSession session : trainer.getAssignedSessions()) {
                 sessions.append("Session: ").append(session.getExerciseType())
-                       .append(" | Date: ").append(session.getDateTime())
-                       .append(" | Room: ").append(session.getRoom().getName()).append("\n");
+                        .append(" | Date: ").append(session.getDateTime())
+                        .append(" | Room: ").append(session.getRoom().getName()).append("\n");
             }
             JOptionPane.showMessageDialog(this, sessions.toString(), "Assigned Sessions", JOptionPane.INFORMATION_MESSAGE);
         });
+
+        JButton addAvailabilityButton = createStyledButton("Add Availability", BUTTON_COLOR);
+        addAvailabilityButton.setToolTipText("Add available time slots for training");
         addAvailabilityButton.addActionListener(e -> {
-            JTextField dateField = new JTextField();
-            JTextField startField = new JTextField();
-            JTextField endField = new JTextField();
-            Object[] fields = {
-                "Date (YYYY-MM-DD):", dateField,
-                "Start Time (HH:MM):", startField,
-                "End Time (HH:MM):", endField
-            };
-            int result = JOptionPane.showConfirmDialog(this, fields, "Add Availability", JOptionPane.OK_CANCEL_OPTION);
-            if (result == JOptionPane.OK_OPTION) {
-                try {
-                    Availability slot = new Availability(
-                        LocalDate.parse(dateField.getText()),
-                        LocalTime.parse(startField.getText()),
-                        LocalTime.parse(endField.getText())
-                    );
-                    trainer.addAvailabilitySlot(slot);
-                    JOptionPane.showMessageDialog(this, "Availability added!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Invalid input format. Use YYYY-MM-DD and HH:MM.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
+            JDialog dialog = createStyledDialog("Add Availability");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            JLabel dateLabel = new JLabel("Select Date:");
+            dateLabel.setFont(LABEL_FONT);
+            dialogPanel.add(dateLabel, gbc);
+
+            gbc.gridx = 1;
+            List<LocalDate> futureDates = new ArrayList<>();
+            for (int i = 0; i < 30; i++) {
+                futureDates.add(LocalDate.now().plusDays(i));
             }
+            JComboBox<String> dateCombo = new JComboBox<>(
+                    futureDates.stream().map(LocalDate::toString).toArray(String[]::new));
+            dateCombo.setFont(INPUT_FONT);
+            dialogPanel.add(dateCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            JLabel startTimeLabel = new JLabel("Start Time:");
+            startTimeLabel.setFont(LABEL_FONT);
+            dialogPanel.add(startTimeLabel, gbc);
+
+            gbc.gridx = 1;
+            String[] timeSlots = {"09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"};
+            JComboBox<String> startTimeCombo = new JComboBox<>(timeSlots);
+            startTimeCombo.setFont(INPUT_FONT);
+            dialogPanel.add(startTimeCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            JLabel endTimeLabel = new JLabel("End Time:");
+            endTimeLabel.setFont(LABEL_FONT);
+            dialogPanel.add(endTimeLabel, gbc);
+
+            gbc.gridx = 1;
+            JComboBox<String> endTimeCombo = new JComboBox<>(timeSlots);
+            endTimeCombo.setFont(INPUT_FONT);
+            dialogPanel.add(endTimeCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 3;
+            gbc.gridwidth = 2;
+            JButton addButton = createStyledButton("Add", BUTTON_COLOR);
+            addButton.addActionListener(evt -> {
+                try {
+                    LocalDate date = LocalDate.parse((String) dateCombo.getSelectedItem());
+                    LocalTime startTime = LocalTime.parse((String) startTimeCombo.getSelectedItem());
+                    LocalTime endTime = LocalTime.parse((String) endTimeCombo.getSelectedItem());
+                    if (startTime.isAfter(endTime) || startTime.equals(endTime)) {
+                        JOptionPane.showMessageDialog(dialog, "Start time must be before end time.", "Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    Availability slot = new Availability(date, startTime, endTime);
+                    trainer.addAvailabilitySlot(slot);
+                    JOptionPane.showMessageDialog(dialog, "Availability added!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(dialog, "Invalid input. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            dialogPanel.add(addButton, gbc);
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
         });
-        checkScheduleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, schedule.getFormattedSchedule(), "Fitness Center Schedule", JOptionPane.INFORMATION_MESSAGE));
+
+        JButton checkScheduleButton = createStyledButton("Check Schedule", BUTTON_COLOR);
+        checkScheduleButton.setToolTipText("View the fitness center schedule");
+        checkScheduleButton.addActionListener(e -> {
+            JTextArea scheduleText = new JTextArea(schedule.getFormattedSchedule());
+            scheduleText.setEditable(false);
+            scheduleText.setFont(INPUT_FONT);
+            JOptionPane.showMessageDialog(this, new JScrollPane(scheduleText), "Fitness Center Schedule", JOptionPane.INFORMATION_MESSAGE);
+        });
+
+        JButton logoutButton = createStyledButton("Logout", CANCEL_COLOR);
+        logoutButton.setToolTipText("Return to main menu");
         logoutButton.addActionListener(e -> initializeMainMenu());
 
         panel.add(viewSessionsButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(addAvailabilityButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(checkScheduleButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(logoutButton);
 
-        add(panel);
+        setContentPane(panel);
+        pack();
         revalidate();
         repaint();
     }
@@ -316,157 +538,372 @@ public class FCSAppUI extends JFrame {
     private void adminPanel(Admin admin) {
         getContentPane().removeAll();
         setTitle("Admin Panel");
-        JPanel panel = new JPanel(new GridLayout(8, 1, 10, 10));
 
-        JButton scheduleSessionButton = new JButton("Schedule New Workout Session");
-        JButton viewUsersButton = new JButton("View All Users");
-        JButton createTrainerButton = new JButton("Create Trainer Account");
-        JButton removeTrainerButton = new JButton("Remove Trainer Account");
-        JButton addExerciseButton = new JButton("Add Exercise");
-        JButton removeExerciseButton = new JButton("Remove Exercise");
-        JButton checkScheduleButton = new JButton("Check Schedule");
-        JButton logoutButton = new JButton("Logout");
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
+        JButton scheduleSessionButton = createStyledButton("Schedule New Workout Session", BUTTON_COLOR);
+        scheduleSessionButton.setToolTipText("Schedule a new workout session");
         scheduleSessionButton.addActionListener(e -> displayScheduleSessionDialog(admin));
+
+        JButton viewUsersButton = createStyledButton("View All Users", BUTTON_COLOR);
+        viewUsersButton.setToolTipText("View all registered users");
         viewUsersButton.addActionListener(e -> registrationService.displayAllUsers());
+
+        JButton createTrainerButton = createStyledButton("Create Trainer Account", BUTTON_COLOR);
+        createTrainerButton.setToolTipText("Create a new trainer account");
         createTrainerButton.addActionListener(e -> {
-            JTextField nameField = new JTextField();
-            JTextField usernameField = new JTextField();
-            JTextField passwordField = new JTextField();
-            Object[] fields = {
-                "Name:", nameField,
-                "Username:", usernameField,
-                "Password:", passwordField
-            };
-            int result = JOptionPane.showConfirmDialog(this, fields, "Create Trainer", JOptionPane.OK_CANCEL_OPTION);
-            if (result == JOptionPane.OK_OPTION) {
-                if (admin.createTrainerAccount(nameField.getText(), usernameField.getText(), passwordField.getText()) != null) {
-                    JOptionPane.showMessageDialog(this, "Trainer account created!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            JDialog dialog = createStyledDialog("Create Trainer");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            JLabel nameLabel = new JLabel("Name:");
+            nameLabel.setFont(LABEL_FONT);
+            dialogPanel.add(nameLabel, gbc);
+
+            gbc.gridx = 1;
+            JTextField nameField = new JTextField(15);
+            nameField.setFont(INPUT_FONT);
+            dialogPanel.add(nameField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            JLabel usernameLabel = new JLabel("Username:");
+            usernameLabel.setFont(LABEL_FONT);
+            dialogPanel.add(usernameLabel, gbc);
+
+            gbc.gridx = 1;
+            JTextField usernameField = new JTextField(15);
+            usernameField.setFont(INPUT_FONT);
+            dialogPanel.add(usernameField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            JLabel passwordLabel = new JLabel("Password:");
+            passwordLabel.setFont(LABEL_FONT);
+            dialogPanel.add(passwordLabel, gbc);
+
+            gbc.gridx = 1;
+            JPasswordField passwordField = new JPasswordField(15);
+            passwordField.setFont(INPUT_FONT);
+            dialogPanel.add(passwordField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 3;
+            gbc.gridwidth = 2;
+            JButton createButton = createStyledButton("Create", BUTTON_COLOR);
+            createButton.addActionListener(evt -> {
+                if (admin.createTrainerAccount(nameField.getText(), usernameField.getText(), new String(passwordField.getPassword())) != null) {
+                    JOptionPane.showMessageDialog(dialog, "Trainer account created!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Failed to create trainer account.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Failed to create trainer account.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            }
+            });
+            dialogPanel.add(createButton, gbc);
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
         });
+
+        JButton removeTrainerButton = createStyledButton("Remove Trainer Account", BUTTON_COLOR);
+        removeTrainerButton.setToolTipText("Remove an existing trainer account");
         removeTrainerButton.addActionListener(e -> {
-            String username = JOptionPane.showInputDialog(this, "Enter trainer username to remove:");
-            if (username != null && !username.trim().isEmpty()) {
+            JDialog dialog = createStyledDialog("Remove Trainer");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            JLabel trainerLabel = new JLabel("Select Trainer:");
+            trainerLabel.setFont(LABEL_FONT);
+            dialogPanel.add(trainerLabel, gbc);
+
+            gbc.gridx = 1;
+            List<User> trainers = getTrainers();
+            JComboBox<String> trainerCombo = new JComboBox<>(
+                    trainers.stream().map(t -> t.getUsername() + " (" + t.getName() + ")").toArray(String[]::new));
+            trainerCombo.setFont(INPUT_FONT);
+            dialogPanel.add(trainerCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            gbc.gridwidth = 2;
+            JButton removeButton = createStyledButton("Remove", BUTTON_COLOR);
+            removeButton.addActionListener(evt -> {
+                String trainerSelection = (String) trainerCombo.getSelectedItem();
+                if (trainerSelection == null) {
+                    JOptionPane.showMessageDialog(dialog, "Please select a trainer.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                String username = trainerSelection.split(" ")[0];
                 if (admin.removeTrainerAccount(username)) {
-                    JOptionPane.showMessageDialog(this, "Trainer account removed!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Trainer account removed!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Failed to remove trainer account.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Failed to remove trainer account.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            } else {
-                JOptionPane.showMessageDialog(this, "Username is required.", "Error", JOptionPane.ERROR_MESSAGE);
-            }
+            });
+            dialogPanel.add(removeButton, gbc);
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
         });
+
+        JButton addExerciseButton = createStyledButton("Add Exercise", BUTTON_COLOR);
+        addExerciseButton.setToolTipText("Add a new exercise type");
         addExerciseButton.addActionListener(e -> {
-            JTextField nameField = new JTextField();
-            JTextField descField = new JTextField();
-            Object[] fields = {
-                "Exercise Name:", nameField,
-                "Description:", descField
-            };
-            int result = JOptionPane.showConfirmDialog(this, fields, "Add Exercise", JOptionPane.OK_CANCEL_OPTION);
-            if (result == JOptionPane.OK_OPTION) {
+            JDialog dialog = createStyledDialog("Add Exercise");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            JLabel nameLabel = new JLabel("Exercise Name:");
+            nameLabel.setFont(LABEL_FONT);
+            dialogPanel.add(nameLabel, gbc);
+
+            gbc.gridx = 1;
+            JTextField nameField = new JTextField(15);
+            nameField.setFont(INPUT_FONT);
+            dialogPanel.add(nameField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            JLabel descLabel = new JLabel("Description:");
+            descLabel.setFont(LABEL_FONT);
+            dialogPanel.add(descLabel, gbc);
+
+            gbc.gridx = 1;
+            JTextField descField = new JTextField(15);
+            descField.setFont(INPUT_FONT);
+            dialogPanel.add(descField, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            gbc.gridwidth = 2;
+            JButton addButton = createStyledButton("Add", BUTTON_COLOR);
+            addButton.addActionListener(evt -> {
                 if (schedule.addExercise(nameField.getText(), descField.getText())) {
-                    JOptionPane.showMessageDialog(this, "Exercise added!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Exercise added!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Failed to add exercise.", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(dialog, "Failed to add exercise.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            }
+            });
+            dialogPanel.add(addButton, gbc);
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
         });
+
+        JButton removeExerciseButton = createStyledButton("Remove Exercise", BUTTON_COLOR);
+        removeExerciseButton.setToolTipText("Remove an existing exercise type");
         removeExerciseButton.addActionListener(e -> {
-            String name = JOptionPane.showInputDialog(this, "Enter exercise name to remove:");
-            if (name != null && !name.trim().isEmpty()) {
-                if (schedule.removeExercise(name)) {
-                    JOptionPane.showMessageDialog(this, "Exercise removed!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Failed to remove exercise.", "Error", JOptionPane.ERROR_MESSAGE);
+            JDialog dialog = createStyledDialog("Remove Exercise");
+            JPanel dialogPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            JLabel exerciseLabel = new JLabel("Select Exercise:");
+            exerciseLabel.setFont(LABEL_FONT);
+            dialogPanel.add(exerciseLabel, gbc);
+
+            gbc.gridx = 1;
+            List<String> exerciseTypes = getExerciseTypes();
+            JComboBox<String> exerciseCombo = new JComboBox<>(exerciseTypes.toArray(new String[0]));
+            exerciseCombo.setFont(INPUT_FONT);
+            dialogPanel.add(exerciseCombo, gbc);
+
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            gbc.gridwidth = 2;
+            JButton removeButton = createStyledButton("Remove", BUTTON_COLOR);
+            removeButton.addActionListener(evt -> {
+                String exerciseName = (String) exerciseCombo.getSelectedItem();
+                if (exerciseName == null) {
+                    JOptionPane.showMessageDialog(dialog, "Please select an exercise.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
                 }
-            } else {
-                JOptionPane.showMessageDialog(this, "Exercise name is required.", "Error", JOptionPane.ERROR_MESSAGE);
-            }
+                if (schedule.removeExercise(exerciseName)) {
+                    JOptionPane.showMessageDialog(dialog, "Exercise removed!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Failed to remove exercise.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            dialogPanel.add(removeButton, gbc);
+
+            dialog.setContentPane(dialogPanel);
+            dialog.pack();
+            dialog.setVisible(true);
         });
-        checkScheduleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, schedule.getFormattedSchedule(), "Fitness Center Schedule", JOptionPane.INFORMATION_MESSAGE));
+
+        JButton checkScheduleButton = createStyledButton("Check Schedule", BUTTON_COLOR);
+        checkScheduleButton.setToolTipText("View the fitness center schedule");
+        checkScheduleButton.addActionListener(e -> {
+            JTextArea scheduleText = new JTextArea(schedule.getFormattedSchedule());
+            scheduleText.setEditable(false);
+            scheduleText.setFont(INPUT_FONT);
+            JOptionPane.showMessageDialog(this, new JScrollPane(scheduleText), "Fitness Center Schedule", JOptionPane.INFORMATION_MESSAGE);
+        });
+
+        JButton logoutButton = createStyledButton("Logout", CANCEL_COLOR);
+        logoutButton.setToolTipText("Return to main menu");
         logoutButton.addActionListener(e -> initializeMainMenu());
 
         panel.add(scheduleSessionButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(viewUsersButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(createTrainerButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(removeTrainerButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(addExerciseButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(removeExerciseButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(checkScheduleButton);
+        panel.add(Box.createVerticalStrut(10));
         panel.add(logoutButton);
 
-        add(panel);
+        setContentPane(panel);
+        pack();
         revalidate();
         repaint();
     }
 
     private void displayScheduleSessionDialog(Admin admin) {
-        JDialog dialog = new JDialog(this, "Schedule New Workout Session", true);
-        dialog.setSize(400, 300);
-        dialog.setLayout(new GridLayout(6, 2, 10, 10));
+        JDialog dialog = createStyledDialog("Schedule New Workout Session");
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Fetch available exercise types
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        JLabel exerciseLabel = new JLabel("Exercise Type:");
+        exerciseLabel.setFont(LABEL_FONT);
+        panel.add(exerciseLabel, gbc);
+
+        gbc.gridx = 1;
         List<String> exerciseTypes = getExerciseTypes();
-        dialog.add(new JLabel("Exercise Type:"));
         JComboBox<String> exerciseCombo = new JComboBox<>(exerciseTypes.toArray(new String[0]));
-        dialog.add(exerciseCombo);
+        exerciseCombo.setFont(INPUT_FONT);
+        panel.add(exerciseCombo, gbc);
 
-        // Fetch available trainers
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        JLabel trainerLabel = new JLabel("Trainer:");
+        trainerLabel.setFont(LABEL_FONT);
+        panel.add(trainerLabel, gbc);
+
+        gbc.gridx = 1;
         List<User> trainers = getTrainers();
-        dialog.add(new JLabel("Trainer:"));
         JComboBox<String> trainerCombo = new JComboBox<>(
-                trainers.stream().map(User::getUsername).toArray(String[]::new));
-        dialog.add(trainerCombo);
+                trainers.stream().map(t -> t.getUsername() + " (" + t.getName() + ")").toArray(String[]::new));
+        trainerCombo.setFont(INPUT_FONT);
+        panel.add(trainerCombo, gbc);
 
-        // Fetch available rooms
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        JLabel roomLabel = new JLabel("Room:");
+        roomLabel.setFont(LABEL_FONT);
+        panel.add(roomLabel, gbc);
+
+        gbc.gridx = 1;
         List<Room> rooms = getRooms();
-        dialog.add(new JLabel("Room:"));
         JComboBox<String> roomCombo = new JComboBox<>(
                 rooms.stream().map(room -> room.getName() + " (ID: " + room.getId() + ")").toArray(String[]::new));
-        dialog.add(roomCombo);
+        roomCombo.setFont(INPUT_FONT);
+        panel.add(roomCombo, gbc);
 
-        // Date selection
-        dialog.add(new JLabel("Date (YYYY-MM-DD):"));
-        JTextField dateField = new JTextField(LocalDate.now().toString());
-        dialog.add(dateField);
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        JLabel dateLabel = new JLabel("Date:");
+        dateLabel.setFont(LABEL_FONT);
+        panel.add(dateLabel, gbc);
 
-        // Time slot selection
+        gbc.gridx = 1;
+        List<LocalDate> futureDates = new ArrayList<>();
+        for (int i = 0; i < 30; i++) {
+            futureDates.add(LocalDate.now().plusDays(i));
+        }
+        JComboBox<String> dateCombo = new JComboBox<>(
+                futureDates.stream().map(LocalDate::toString).toArray(String[]::new));
+        dateCombo.setFont(INPUT_FONT);
+        panel.add(dateCombo, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        JLabel timeLabel = new JLabel("Time:");
+        timeLabel.setFont(LABEL_FONT);
+        panel.add(timeLabel, gbc);
+
+        gbc.gridx = 1;
         String[] timeSlots = {"09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"};
-        dialog.add(new JLabel("Time:"));
         JComboBox<String> timeCombo = new JComboBox<>(timeSlots);
-        dialog.add(timeCombo);
+        timeCombo.setFont(INPUT_FONT);
+        panel.add(timeCombo, gbc);
 
-        // Capacity selection
-        dialog.add(new JLabel("Max Capacity:"));
-        JSpinner capacitySpinner = new JSpinner(new SpinnerNumberModel(15, 1, 50, 1));
-        dialog.add(capacitySpinner);
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        JLabel capacityLabel = new JLabel("Max Capacity:");
+        capacityLabel.setFont(LABEL_FONT);
+        panel.add(capacityLabel, gbc);
 
-        JButton scheduleButton = new JButton("Schedule");
+        gbc.gridx = 1;
+        Integer[] capacities = {5, 10, 15, 20, 25};
+        JComboBox<Integer> capacityCombo = new JComboBox<>(capacities);
+        capacityCombo.setFont(INPUT_FONT);
+        panel.add(capacityCombo, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.gridwidth = 2;
+        JButton scheduleButton = createStyledButton("Schedule", BUTTON_COLOR);
         scheduleButton.addActionListener(e -> {
             try {
                 String exerciseType = (String) exerciseCombo.getSelectedItem();
-                String trainerUsername = (String) trainerCombo.getSelectedItem();
+                String trainerSelection = (String) trainerCombo.getSelectedItem();
                 String roomSelection = (String) roomCombo.getSelectedItem();
-                String date = dateField.getText();
+                String date = (String) dateCombo.getSelectedItem();
                 String time = (String) timeCombo.getSelectedItem();
-                int capacity = (Integer) capacitySpinner.getValue();
+                int capacity = (Integer) capacityCombo.getSelectedItem();
 
-                // Extract room ID from selection
+                if (exerciseType == null || trainerSelection == null || roomSelection == null) {
+                    JOptionPane.showMessageDialog(dialog, "Please select all required fields.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                String trainerUsername = trainerSelection.split(" ")[0];
                 int roomId = Integer.parseInt(roomSelection.replaceAll(".*ID: (\\d+)\\)", "$1"));
                 Room room = rooms.stream().filter(r -> r.getId() == roomId).findFirst().orElse(null);
                 Trainer trainer = (Trainer) trainers.stream()
                         .filter(t -> t.getUsername().equals(trainerUsername)).findFirst().orElse(null);
 
-                if (exerciseType == null || trainer == null || room == null) {
-                    JOptionPane.showMessageDialog(dialog, "Please select valid exercise, trainer, and room.", "Error", JOptionPane.ERROR_MESSAGE);
+                if (trainer == null || room == null) {
+                    JOptionPane.showMessageDialog(dialog, "Invalid trainer or room.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
-                // Generate session ID
                 String sessionId = "SES" + System.currentTimeMillis();
                 LocalDateTime dateTime = LocalDateTime.parse(date + "T" + time);
 
@@ -480,11 +917,13 @@ public class FCSAppUI extends JFrame {
                     JOptionPane.showMessageDialog(dialog, "Failed to schedule session. Check trainer/room availability.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "Invalid input format. Use YYYY-MM-DD for date.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "Invalid input. Please try again.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
-        dialog.add(scheduleButton);
+        panel.add(scheduleButton, gbc);
 
+        dialog.setContentPane(panel);
+        dialog.pack();
         dialog.setVisible(true);
     }
 
@@ -557,6 +996,22 @@ public class FCSAppUI extends JFrame {
             LoggerUtils.logError("Error fetching room: " + e.getMessage());
         }
         return null;
+    }
+
+    private JButton createStyledButton(String text, Color bgColor) {
+        JButton button = new JButton(text);
+        button.setFont(LABEL_FONT);
+        button.setBackground(bgColor);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        return button;
+    }
+
+    private JDialog createStyledDialog(String title) {
+        JDialog dialog = new JDialog(this, title, true);
+        dialog.setLocationRelativeTo(this);
+        return dialog;
     }
 
     public static void main(String[] args) {
