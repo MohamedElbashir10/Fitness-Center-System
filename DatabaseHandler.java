@@ -2,7 +2,7 @@ import java.sql.*;
 
 public class DatabaseHandler {
     public Connection connect() throws SQLException {
-        String url = "jdbc:mysql://localhost:3306/fcsdb";
+        String url = "jdbc:mysql://127.0.0.1:3307/fcsDatabase";
         String user = "root";
         String password = "rootpassword";
         return DriverManager.getConnection(url, user, password);
