@@ -1,8 +1,14 @@
 import javax.swing.*;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FCSAppUI extends JFrame {
     private final AuthService authService;
@@ -39,20 +45,17 @@ public class FCSAppUI extends JFrame {
         getContentPane().removeAll();
         setTitle("FCS Main Menu");
 
-        JPanel panel = new JPanel(new GridLayout(4, 1, 10, 10));
+        JPanel panel = new JPanel(new GridLayout(3, 1, 10, 10));
         JButton loginButton = new JButton("Login");
         JButton registerButton = new JButton("Register");
-        JButton viewScheduleButton = new JButton("View Schedule");
         JButton exitButton = new JButton("Exit");
 
         loginButton.addActionListener(e -> displayLoginDialog());
         registerButton.addActionListener(e -> displayRegistrationDialog());
-        viewScheduleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, schedule.getFormattedSchedule(), "Fitness Center Schedule", JOptionPane.INFORMATION_MESSAGE));
         exitButton.addActionListener(e -> System.exit(0));
 
         panel.add(loginButton);
         panel.add(registerButton);
-        panel.add(viewScheduleButton);
         panel.add(exitButton);
 
         add(panel);
@@ -324,50 +327,7 @@ public class FCSAppUI extends JFrame {
         JButton checkScheduleButton = new JButton("Check Schedule");
         JButton logoutButton = new JButton("Logout");
 
-        scheduleSessionButton.addActionListener(e -> {
-            JTextField sessionIdField = new JTextField();
-            JTextField exerciseField = new JTextField();
-            JTextField dateField = new JTextField();
-            JTextField timeField = new JTextField();
-            JTextField capacityField = new JTextField();
-            JTextField trainerField = new JTextField();
-            JTextField roomIdField = new JTextField();
-            Object[] fields = {
-                "Session ID:", sessionIdField,
-                "Exercise Type:", exerciseField,
-                "Date (YYYY-MM-DD):", dateField,
-                "Time (HH:MM):", timeField,
-                "Max Capacity:", capacityField,
-                "Trainer Username:", trainerField,
-                "Room ID:", roomIdField
-            };
-            int result = JOptionPane.showConfirmDialog(this, fields, "Schedule Session", JOptionPane.OK_CANCEL_OPTION);
-            if (result == JOptionPane.OK_OPTION) {
-                try {
-                    Trainer trainer = (Trainer) authService.getUserDetails(trainerField.getText());
-                    Room room = getRoomById(Integer.parseInt(roomIdField.getText()));
-                    if (trainer == null || room == null) {
-                        JOptionPane.showMessageDialog(this, "Invalid trainer or room.", "Error", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    WorkoutSession session = new WorkoutSession(
-                        sessionIdField.getText(),
-                        exerciseField.getText(),
-                        LocalDateTime.parse(dateField.getText() + "T" + timeField.getText()),
-                        Integer.parseInt(capacityField.getText()),
-                        room,
-                        trainer
-                    );
-                    if (schedule.scheduleWorkout(admin, session, trainer, room)) {
-                        JOptionPane.showMessageDialog(this, "Session scheduled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                    } else {
-                        JOptionPane.showMessageDialog(this, "Failed to schedule session. Check trainer/room availability.", "Error", JOptionPane.ERROR_MESSAGE);
-                    }
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Invalid input format. Use YYYY-MM-DD and HH:MM.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
+        scheduleSessionButton.addActionListener(e -> displayScheduleSessionDialog(admin));
         viewUsersButton.addActionListener(e -> registrationService.displayAllUsers());
         createTrainerButton.addActionListener(e -> {
             JTextField nameField = new JTextField();
@@ -444,17 +404,156 @@ public class FCSAppUI extends JFrame {
         repaint();
     }
 
+    private void displayScheduleSessionDialog(Admin admin) {
+        JDialog dialog = new JDialog(this, "Schedule New Workout Session", true);
+        dialog.setSize(400, 300);
+        dialog.setLayout(new GridLayout(6, 2, 10, 10));
+
+        // Fetch available exercise types
+        List<String> exerciseTypes = getExerciseTypes();
+        dialog.add(new JLabel("Exercise Type:"));
+        JComboBox<String> exerciseCombo = new JComboBox<>(exerciseTypes.toArray(new String[0]));
+        dialog.add(exerciseCombo);
+
+        // Fetch available trainers
+        List<User> trainers = getTrainers();
+        dialog.add(new JLabel("Trainer:"));
+        JComboBox<String> trainerCombo = new JComboBox<>(
+                trainers.stream().map(User::getUsername).toArray(String[]::new));
+        dialog.add(trainerCombo);
+
+        // Fetch available rooms
+        List<Room> rooms = getRooms();
+        dialog.add(new JLabel("Room:"));
+        JComboBox<String> roomCombo = new JComboBox<>(
+                rooms.stream().map(room -> room.getName() + " (ID: " + room.getId() + ")").toArray(String[]::new));
+        dialog.add(roomCombo);
+
+        // Date selection
+        dialog.add(new JLabel("Date (YYYY-MM-DD):"));
+        JTextField dateField = new JTextField(LocalDate.now().toString());
+        dialog.add(dateField);
+
+        // Time slot selection
+        String[] timeSlots = {"09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"};
+        dialog.add(new JLabel("Time:"));
+        JComboBox<String> timeCombo = new JComboBox<>(timeSlots);
+        dialog.add(timeCombo);
+
+        // Capacity selection
+        dialog.add(new JLabel("Max Capacity:"));
+        JSpinner capacitySpinner = new JSpinner(new SpinnerNumberModel(15, 1, 50, 1));
+        dialog.add(capacitySpinner);
+
+        JButton scheduleButton = new JButton("Schedule");
+        scheduleButton.addActionListener(e -> {
+            try {
+                String exerciseType = (String) exerciseCombo.getSelectedItem();
+                String trainerUsername = (String) trainerCombo.getSelectedItem();
+                String roomSelection = (String) roomCombo.getSelectedItem();
+                String date = dateField.getText();
+                String time = (String) timeCombo.getSelectedItem();
+                int capacity = (Integer) capacitySpinner.getValue();
+
+                // Extract room ID from selection
+                int roomId = Integer.parseInt(roomSelection.replaceAll(".*ID: (\\d+)\\)", "$1"));
+                Room room = rooms.stream().filter(r -> r.getId() == roomId).findFirst().orElse(null);
+                Trainer trainer = (Trainer) trainers.stream()
+                        .filter(t -> t.getUsername().equals(trainerUsername)).findFirst().orElse(null);
+
+                if (exerciseType == null || trainer == null || room == null) {
+                    JOptionPane.showMessageDialog(dialog, "Please select valid exercise, trainer, and room.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Generate session ID
+                String sessionId = "SES" + System.currentTimeMillis();
+                LocalDateTime dateTime = LocalDateTime.parse(date + "T" + time);
+
+                WorkoutSession session = new WorkoutSession(
+                        sessionId, exerciseType, dateTime, capacity, room, trainer);
+
+                if (schedule.scheduleWorkout(admin, session, trainer, room)) {
+                    JOptionPane.showMessageDialog(dialog, "Session scheduled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Failed to schedule session. Check trainer/room availability.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Invalid input format. Use YYYY-MM-DD for date.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        dialog.add(scheduleButton);
+
+        dialog.setVisible(true);
+    }
+
+    private List<String> getExerciseTypes() {
+        List<String> exerciseTypes = new ArrayList<>();
+        try (Connection conn = new DatabaseHandler().connect()) {
+            String query = "SELECT name FROM session_types";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    exerciseTypes.add(rs.getString("name"));
+                }
+            }
+        } catch (SQLException e) {
+            LoggerUtils.logError("Error fetching exercise types: " + e.getMessage());
+        }
+        return exerciseTypes;
+    }
+
+    private List<User> getTrainers() {
+        List<User> trainers = new ArrayList<>();
+        try (Connection conn = new DatabaseHandler().connect()) {
+            String query = "SELECT id, name, username, role FROM users WHERE role = 'Trainer'";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    trainers.add(new Trainer(
+                            rs.getString("name"),
+                            rs.getString("username"),
+                            null));
+                }
+            }
+        } catch (SQLException e) {
+            LoggerUtils.logError("Error fetching trainers: " + e.getMessage());
+        }
+        return trainers;
+    }
+
+    private List<Room> getRooms() {
+        List<Room> rooms = new ArrayList<>();
+        try (Connection conn = new DatabaseHandler().connect()) {
+            String query = "SELECT id, name, capacity, description FROM rooms";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    rooms.add(new Room(
+                            rs.getString("name"),
+                            rs.getInt("id"),
+                            rs.getInt("capacity"),
+                            rs.getString("description")));
+                }
+            }
+        } catch (SQLException e) {
+            LoggerUtils.logError("Error fetching rooms: " + e.getMessage());
+        }
+        return rooms;
+    }
+
     private Room getRoomById(int roomId) {
-        try (java.sql.Connection conn = new DatabaseHandler().connect()) {
+        try (Connection conn = new DatabaseHandler().connect()) {
             String query = "SELECT * FROM rooms WHERE id = ?";
-            try (java.sql.PreparedStatement stmt = conn.prepareStatement(query)) {
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
                 stmt.setInt(1, roomId);
-                java.sql.ResultSet rs = stmt.executeQuery();
+                ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
                     return new Room(rs.getString("name"), rs.getInt("id"), rs.getInt("capacity"), "");
                 }
             }
-        } catch (java.sql.SQLException e) {
+        } catch (SQLException e) {
             LoggerUtils.logError("Error fetching room: " + e.getMessage());
         }
         return null;

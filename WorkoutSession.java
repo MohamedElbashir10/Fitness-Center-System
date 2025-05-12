@@ -7,6 +7,7 @@ public class WorkoutSession {
     private String exerciseType;
     private LocalDateTime dateTime;
     private int maxCapacity;
+    private int currentOccupancy;
     private Room room;
     private Trainer trainer;
     private List<Member> participants;
@@ -16,12 +17,13 @@ public class WorkoutSession {
         this.exerciseType = exerciseType;
         this.dateTime = dateTime;
         this.maxCapacity = maxCapacity;
+        this.currentOccupancy = 0; // Default to 0 at the start
         this.room = room;
         this.trainer = trainer;
         this.participants = new ArrayList<>();
     }
 
-   
+    // Getters and Setters
     public String getSessionID() {
         return sessionID;
     }
@@ -54,6 +56,10 @@ public class WorkoutSession {
         this.maxCapacity = maxCapacity;
     }
 
+    public int getCurrentOccupancy() {
+        return currentOccupancy;
+    }
+
     public Room getRoom() {
         return room;
     }
@@ -74,19 +80,38 @@ public class WorkoutSession {
         return participants;
     }
 
+    // Methods
     public boolean addParticipant(Member member) {
-        if (participants.size() < maxCapacity) {
+        if (currentOccupancy < maxCapacity) {
             participants.add(member);
+            currentOccupancy++;
             return true;
         }
-        return false;
+        return false; // Session is full
     }
 
     public boolean removeParticipant(Member member) {
-        return participants.remove(member);
+        if (participants.remove(member)) {
+            currentOccupancy--;
+            return true;
+        }
+        return false; // Member not found in the session
     }
 
-    public int getCurrentOccupancy() {
-        return participants.size();
+    public boolean isFull() {
+        return currentOccupancy >= maxCapacity;
+    }
+
+    @Override
+    public String toString() {
+        return "WorkoutSession{" +
+                "sessionID='" + sessionID + '\'' +
+                ", exerciseType='" + exerciseType + '\'' +
+                ", dateTime=" + dateTime +
+                ", maxCapacity=" + maxCapacity +
+                ", currentOccupancy=" + currentOccupancy +
+                ", room=" + room.getName() +
+                ", trainer=" + trainer.getName() +
+                '}';
     }
 }
