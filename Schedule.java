@@ -1,3 +1,4 @@
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,7 +9,6 @@ public class Schedule {
     public Schedule() {
         this.scheduledSessions = new ArrayList<>();
     }
-
 
     public boolean scheduleWorkout(Admin admin, WorkoutSession session, Trainer trainer, Room room) {
         boolean isTrainerAvailable = trainer.getAvailabilitySlots().stream()
@@ -22,15 +22,13 @@ public class Schedule {
         }
 
         for (WorkoutSession existing : scheduledSessions) {
-            if (existing.getRoom() != null && room != null
-                    && existing.getRoom().getId() == room.getId()
+            if (existing.getRoom().getId() == room.getId()
                     && existing.getDateTime().equals(session.getDateTime())) {
                 LoggerUtils.logError("Room is already booked for another session at this time.");
                 return false;
             }
 
-            if (existing.getTrainer() != null && trainer != null
-                    && existing.getTrainer().getId() == (trainer.getId())
+            if (existing.getTrainer().getId() == trainer.getId()
                     && existing.getDateTime().equals(session.getDateTime())) {
                 LoggerUtils.logError("Trainer already has another session at this time.");
                 return false;
@@ -46,33 +44,27 @@ public class Schedule {
         return true;
     }
 
-    public void displaySchedule() {
-        LoggerUtils.logSection("Scheduled Workout Sessions");
-        for (WorkoutSession session : scheduledSessions) {
-            LoggerUtils.logInfo("Session ID: " + session.getSessionID()
-                    + " | Exercise: " + session.getExerciseType()
-                    + " | Date: " + session.getDateTime()
-                    + " | Room: " + (session.getRoom() != null ? session.getRoom().getName() : "N/A")
-                    + " | Trainer: " + (session.getTrainer() != null ? session.getTrainer().getUsername() : "N/A"));
+    public String getFormattedSchedule() {
+        if (scheduledSessions.isEmpty()) {
+            return "No sessions scheduled.";
         }
+
+        StringBuilder scheduleBuilder = new StringBuilder();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        for (WorkoutSession session : scheduledSessions) {
+            scheduleBuilder.append("Session ID: ").append(session.getSessionID())
+                    .append("\nExercise: ").append(session.getExerciseType())
+                    .append("\nDate & Time: ").append(session.getDateTime().format(formatter))
+                    .append("\nRoom: ").append(session.getRoom().getName())
+                    .append("\nTrainer: ").append(session.getTrainer().getUsername())
+                    .append("\n\n");
+        }
+
+        return scheduleBuilder.toString();
     }
 
     public List<WorkoutSession> getScheduledSessions() {
         return scheduledSessions;
     }
-
-    public void removeWorkoutSession(WorkoutSession session) {
-        scheduledSessions.remove(session);
-    }
-
-    public List<WorkoutSession> getSessionsForTrainer(Trainer trainer) {
-        List<WorkoutSession> result = new ArrayList<>();
-        for (WorkoutSession session : scheduledSessions) {
-            if (session.getTrainer() != null && session.getTrainer().getId() == (trainer.getId())) {
-                result.add(session);
-            }
-        }
-        return result;
-    }
 }
-
